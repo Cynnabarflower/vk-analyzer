@@ -11,7 +11,6 @@ import threading
 
 
 class VkLoader:
-
     VK_ERRORS = {
         1: {'name': 'Unknown error occurred'},
         7: {'name': 'Permission to perform this action is denied'},
@@ -44,11 +43,11 @@ class VkLoader:
     conversations_to_load = []
 
     def __init__(self):
-        #self.auth()
+        # self.auth()
         self.createMainDir()
 
     def createMainDir(self):
-        self.main_dir = 'VK_Analyzer_'+self.getTime()
+        self.main_dir = 'VK_Analyzer_' + self.getTime()
         os.mkdir(self.main_dir)
 
     @staticmethod
@@ -61,7 +60,7 @@ class VkLoader:
 
     def getFileName(self, name):
         name = self.cleanName(name)
-        return self.main_dir+'/'+name+'_'+self.getTime()+'.txt'
+        return self.main_dir + '/' + name + '_' + self.getTime() + '.txt'
 
     def getMessages(self, dir, conversation, count):
         if not dir.endswith('/'):
@@ -107,7 +106,6 @@ class VkLoader:
             time.sleep(self.SLEEP_TIME);
         f.write(']')
         f.close()
-
 
     @staticmethod
     def getConversationId(conversation):
@@ -193,6 +191,7 @@ class VkLoader:
 
     def __getFriendsInfo(self, user_id, depth, dictOfFriends, fields):
 
+        dictOfFriends[user_id]['isLoaded'] = True
         friends = self.admin_api.friends.get(user_id=user_id, fields=fields)
         attempt = 1
         while isinstance(friends, Exception) and attempt < self.MAX_ATTEMPTS:
@@ -205,15 +204,25 @@ class VkLoader:
             attempt = attempt + 1
         if attempt == self.MAX_ATTEMPTS:
             return
+        c_time = time.time()
         for friend in friends['items']:
-            dictOfFriends.update({friend['id'] if 'id' in friend else friend: friend})
+            if not (friend['id'] if 'id' in friend else friend) in dictOfFriends:
+                friend['scan_time'] = c_time
+                dictOfFriends.update({friend['id'] if 'id' in friend else friend: friend})
 
+        print(depth, ' got: ', len(dictOfFriends))
         if depth > 0:
             time.sleep(self.SMALL_SLEEP_TIME)
             for friend in friends['items']:
-                self.__getFriendsInfo(user_id=friend['id'], depth=depth - 1, dictOfFriends=dictOfFriends, fields=fields)
+                cId = friend['id']
+                if 'isLoaded' in dictOfFriends[cId] and dictOfFriends[cId]['isLoaded']:
+                    print('Already have this one')
+                    continue
+                else:
+                    self.__getFriendsInfo(user_id=cId, depth=depth - 1, dictOfFriends=dictOfFriends, fields=fields)
+                    time.sleep(self.SMALL_SLEEP_TIME)
 
-    def getUserInfo(self, user_id='', filename='', user_fields = None):
+    def getUserInfo(self, user_id='', filename='', user_fields=None):
         fields = [
             'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
         if not (user_fields is None):
@@ -247,8 +256,7 @@ class VkLoader:
     def getTime():
         return str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 
-
-    def makeFullLoad(self, conversations = None):
+    def makeFullLoad(self, conversations=None):
         self.createMainDir()
         conversationsDir = self.main_dir + '/conversations'
         try:
@@ -267,7 +275,7 @@ class VkLoader:
 
         print('launched: ' + self.getTime())
         print('getting friends... (depth ' + str(self.friends_depth) + ')')
-        friends = self.getFriendsInfo(user_id='', user_fields=None,  depth=self.friends_depth)
+        friends = self.getFriendsInfo(user_id='', user_fields=None, depth=self.friends_depth)
         friends_len = len(friends)
         print('writing ' + str(friends_len) + ' friends... ' + self.getTime())
         i = 1
@@ -373,11 +381,12 @@ class VkLoader:
         f.write('"online_mob":[' + (online_mobile_string[2:len(online_mobile_string) - 2]) + ']}')
         f.close()
         print('done!')
+        print(self.getTime())
         print(filename)
 
     def loadConversations(self, conversations):
         self.createMainDir()
-        conversationsDir = self.main_dir + '/conversations'+self.getTime()
+        conversationsDir = self.main_dir + '/conversations' + self.getTime()
         try:
             os.mkdir(conversationsDir)
         except Exception as e:
@@ -404,6 +413,48 @@ class VkLoader:
                 time.sleep(self.BIG_SLEEP_TIME)
         print(conversationsDir)
 
+    def getFromGroup(self, group_id, maxMembers = -1):
+        group = self.admin_api.groups.getById(group_id=group_id, fields="members_count")
+        print('getting from group ', group[0]['name'], '...')
+        members_count = group[0]['members_count']
+        if maxMembers > 0:
+            members_count = min(members_count, maxMembers)
+        offset = 0
+        execString = "return "
+        call_count = 0
+        members = []
+        time.sleep(self.SMALL_SLEEP_TIME)
+        while members_count > offset:
+            while call_count < 16:
+                if call_count:
+                    execString += "+"
+                execString += ("API.users.get({'user_ids': API.groups.getMembers({'group_id': "
+                               + str(group_id) + ", 'offset': " + str(offset) +
+                               "}).items,'fields': 'nickname, screen_name, sex, "
+                               "bdate, city, country, timezone, photo, "
+                               "has_mobile, contacts, education, online, "
+                               "counters, relation, last_seen, activity, "
+                               "can_write_private_message, can_see_all_posts, "
+                               "can_post, universities, followers_count, "
+                               "counters, occupation'}) ")
+                call_count += 2
+                offset += min(members_count - offset, 1000)
+                if offset >= members_count:
+                    break
+            members.append(self.admin_api.execute(code=execString + ';'))
+            execString = "return "
+            call_count = 0
+            print('got: ', offset, '/', members_count)
+            if offset < members_count:
+                time.sleep(self.BIG_SLEEP_TIME)
+        print('done!')
+        return members
+
+    def saveToFile(self, obj, name):
+        filename = self.getFileName(name)
+        f = open(filename, "w+", True, 'UTF-8')
+        f.write(json.dumps(obj))
+        f.close()
 
     def getFriendsInfo(self, user_id, user_fields, depth, filename=''):
         friends = dict()
@@ -419,16 +470,21 @@ class VkLoader:
                 return
         if depth < 0:
             depth = int(input('depth:\n'))
-        self.__getFriendsInfo(user_id, depth, friends, fields)
+        try:
+            friends.update({user_id: dict()})
+            self.__getFriendsInfo(user_id, depth, friends, fields)
+        except Exception as e:
+            print(traceback.format_exc())
+
         if filename:
             f = open(filename, "w+", True, 'UTF-8')
             f.write(json.dumps(friends))
             f.close()
         return friends
 
-    def auth(self, tel = '', pas = ''):
+    def auth(self, tel='', pas=''):
         phone = tel if tel else input('phone:')
-        passw = pas if pas else input('pass:') #9841b7a33831ef01
+        passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_api = vkHacked.VKFA(phone, passw)
         auth = self.admin_api.auth()
         if not auth:
@@ -439,24 +495,31 @@ class VkLoader:
 
     def wLastSeen(self):
         i = 0
-        while i < 4 * 3:
-            i = i + 1
-            filename = self.getFileName('last_online')
-            self.getFriendsInfo('', 'last_seen', 0, filename)
-            print(i)
-            print(filename)
-            time.sleep(60 * 15)
-
+        print('Last seen...')
+        while i < 4 * 24:
+            try:
+                i = i + 1
+                filename = self.getFileName('last_online')
+                self.getFriendsInfo(self.getUserInfo()['id'], 'last_seen', 1, filename)
+                print(i)
+                print(filename)
+                time.sleep(60 * 15)
+            except Exception as e:
+                print(traceback.format_exc())
 
     def watchLastSeen(self):
         threading.Thread(target=lambda self: self.wLastSeen(), args=([self])).start()
 
     def mainMenu(self):
         answers = {
-            'A': {'name': ('[A]uth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')), 'foo': lambda: self.auth()},
+            'A': {'name': ('[A]uth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
+                  'foo': lambda: self.auth()},
             'F': {'name': '[F]ull load', 'foo': lambda: self.makeFullLoad()},
-            'O': {'name': '[O]nline friends', 'foo': lambda: self.getOnline(self.getFileName('online'), int(input('depth:')))},
-            'L': {'name': '[L]ast time online', 'foo': lambda: self.getFriendsInfo('', 'last_seen', int(input('depth:')), self.getFileName('last_online'))},
+            'O': {'name': '[O]nline friends',
+                  'foo': lambda: self.getOnline(self.getFileName('online'), int(input('depth:')))},
+            'L': {'name': '[L]ast time online',
+                  'foo': lambda: self.getFriendsInfo('', 'last_seen', int(input('depth:')),
+                                                     self.getFileName('last_online'))},
             'Q': {'name': '[Q]uit', 'foo': lambda: sys.exit}
         }
 
@@ -475,18 +538,19 @@ class VkLoader:
 
     def tkMenu(self):
 
-
-
         answers = {
-            'A': {'name': ('Auth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')), 'foo': lambda: auth_menu()},
+            'A': {'name': ('Auth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
+                  'foo': lambda: auth_menu()},
             'F': {'name': 'Load conversations', 'foo': lambda: loadConversationsMenu()},
             'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
             'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
+            'G': {'name': 'Get from group', 'foo': lambda: self.saveToFile(self.getFromGroup(31480508, 10000), 'from_group')},
             'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
         }
 
         def login():
             self.auth()
+
         root = Tk()
         root.geometry("500x400")
 
@@ -510,13 +574,16 @@ class VkLoader:
             entryPas.pack()
             button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
             button.pack(fill=BOTH, expand=1)
-            button = Button(bg='white', text='Auth', command=lambda: loadMainMenu() if (entryPas.get() and entryTel.get() and self.auth(tel=entryTel.get(), pas=entryPas.get())) else tkinter.messagebox.showinfo("", "Failed to login") )
+            button = Button(bg='white', text='Auth', command=lambda: loadMainMenu() if (
+                    entryPas.get() and entryTel.get() and self.auth(tel=entryTel.get(),
+                                                                    pas=entryPas.get())) else tkinter.messagebox.showinfo(
+                "", "Failed to login"))
             button.pack(fill=BOTH, expand=1)
 
         def conversation_clicked(event):
             load = not self.tk_buttons[event]['load']
             self.tk_buttons[event]['load'] = load
-            self.tk_buttons[event]['button'].config(bg = 'white' if load else 'red')
+            self.tk_buttons[event]['button'].config(bg='white' if load else 'red')
             if load:
                 self.conversations_to_load.append(self.tk_buttons[event]['conversation'])
             else:
@@ -530,8 +597,9 @@ class VkLoader:
             else:
                 conversations = self.tk_buttons.items()
 
-            Button(bg='white', text='Load!',command=lambda: self.loadConversations(self.conversations_to_load) ).pack(fill=BOTH, expand=1)
-            Button(bg='white', text='Back', command=lambda: loadMainMenu()).pack(fill=BOTH,expand=1)
+            Button(bg='white', text='Load!', command=lambda: self.loadConversations(self.conversations_to_load)).pack(
+                fill=BOTH, expand=1)
+            Button(bg='white', text='Back', command=lambda: loadMainMenu()).pack(fill=BOTH, expand=1)
             Label(text="Conversations:").pack()
             if len(self.tk_buttons) == 0:
                 for conversation in conversations:
@@ -546,9 +614,11 @@ class VkLoader:
                             conversation_name = conversation['conversation']['chat_settings']['title']
 
                     if (conversation_name):
-                        button = Button(bg='white', text=conversation_name, command=lambda name = conversation_name: conversation_clicked(name))
+                        button = Button(bg='white', text=conversation_name,
+                                        command=lambda name=conversation_name: conversation_clicked(name))
                         button.pack(fill=BOTH, expand=1)
-                        self.tk_buttons.update({conversation_name : {'button': button, 'conversation': conversation, 'load': True}})
+                        self.tk_buttons.update(
+                            {conversation_name: {'button': button, 'conversation': conversation, 'load': True}})
                         self.conversations_to_load.append(conversation)
             else:
                 for conversation in conversations:
@@ -557,9 +627,8 @@ class VkLoader:
         auth_menu()
         root.mainloop()
 
+
 VkLoader().tkMenu()
 # makeFullLoad()
 # auth()
 # getOnline()
-
-
