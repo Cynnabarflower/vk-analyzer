@@ -413,9 +413,10 @@ class VkLoader:
                 time.sleep(self.BIG_SLEEP_TIME)
         print(conversationsDir)
 
-    def getFromGroup(self, group_id, maxMembers = -1):
-        group = self.admin_api.groups.getById(group_id=group_id, fields="members_count")
+    def getFromGroup(self, group_name, maxMembers = -1):
+        group = self.admin_api.groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
+        group_id = group[0]['id']
         members_count = group[0]['members_count']
         if maxMembers > 0:
             members_count = min(members_count, maxMembers)
@@ -428,9 +429,10 @@ class VkLoader:
             while call_count < 16:
                 if call_count:
                     execString += "+"
-                execString += ("API.users.get({'user_ids': API.groups.getMembers({'group_id': "
-                               + str(group_id) + ", 'offset': " + str(offset) +
-                               "}).items,'fields': 'nickname, screen_name, sex, "
+                execString += ("API.users.get({'user_ids':API.groups.getMembers({'group_id':"
+                               + str(group_id) + ",'offset':" + str(offset) +
+                               ",'count':" + str(min(members_count - offset, 1000)) +
+                               "}).items,'fields':'nickname,screen_name,sex,"
                                "bdate, city, country, timezone, photo, "
                                "has_mobile, contacts, education, online, "
                                "counters, relation, last_seen, activity, "
@@ -455,6 +457,7 @@ class VkLoader:
         f = open(filename, "w+", True, 'UTF-8')
         f.write(json.dumps(obj))
         f.close()
+        print('File saved: ', filename)
 
     def getFriendsInfo(self, user_id, user_fields, depth, filename=''):
         friends = dict()
@@ -496,7 +499,7 @@ class VkLoader:
     def wLastSeen(self):
         i = 0
         print('Last seen...')
-        while i < 4 * 24:
+        while i < 4 * 3:
             try:
                 i = i + 1
                 filename = self.getFileName('last_online')
@@ -544,7 +547,7 @@ class VkLoader:
             'F': {'name': 'Load conversations', 'foo': lambda: loadConversationsMenu()},
             'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
             'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
-            'G': {'name': 'Get from group', 'foo': lambda: self.saveToFile(self.getFromGroup(31480508, 10000), 'from_group')},
+            'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
             'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
         }
 
@@ -563,6 +566,19 @@ class VkLoader:
         def clear():
             for widget in root.winfo_children():
                 widget.pack_forget()
+
+        def group_chosen():
+            clear()
+            Label(text="id or name:").pack()
+            groupId = Entry(root)
+            groupId.pack()
+            Label(text="how many users").pack()
+            quan = Entry(root)
+            quan.pack()
+            button = Button(bg='white', text='Load', command=lambda: self.saveToFile(self.getFromGroup(groupId.get(), int(quan.get())), 'from_group'))
+            button.pack(fill=BOTH, expand=1)
+            button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
+            button.pack(fill=BOTH, expand=1)
 
         def auth_menu():
             clear()
