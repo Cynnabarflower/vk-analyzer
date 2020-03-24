@@ -19,7 +19,7 @@ class VKFA:
 
 	def auth(self):
 		"""
-		Authorization with current login and password.
+		Authorization with current login and password, pretending to be browser.
 		Return link to current user profile is success, false if not.
 		:return:
 		:rtype:
@@ -89,7 +89,7 @@ class VKFA:
 
 	def get_hash(self, method):
 		"""
-
+		Returns the hash of user's page
 		:rtype: object
 		"""
 		r = self.s.get('https://vk.com/dev/' + method)
