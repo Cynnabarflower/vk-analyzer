@@ -49,6 +49,7 @@ class VKFA:
 			return False
 
 	def __getattr__(self, method):
+
 		if self.obj:
 			obj = self.obj
 		else:
@@ -60,6 +61,13 @@ class VKFA:
 			return VKFA(section = method, obj = self)
 
 	def __call__(self, **kwargs):
+		"""
+		Redirects calls to vk
+		:param kwargs:
+		:type kwargs:
+		:return:
+		:rtype:
+		"""
 		h = self.obj.get_hash(self.section)
 		if not h:
 			raise Exception("Error while getting hash")
