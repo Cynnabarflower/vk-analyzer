@@ -18,6 +18,12 @@ class VKFA:
 		self.section = section
 
 	def auth(self):
+		"""
+		Authorization with current login and password.
+		Return link to current user profile is success, false if not.
+		:return:
+		:rtype:
+		"""
 		headers = {
 			"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36",
 			"accept": "*/*",
@@ -82,6 +88,10 @@ class VKFA:
 
 
 	def get_hash(self, method):
+		"""
+
+		:rtype: object
+		"""
 		r = self.s.get('https://vk.com/dev/' + method)
 		h = re.findall('onclick="Dev.methodRun\(\'(.+?)\', this\);', r.text)
 		if h:

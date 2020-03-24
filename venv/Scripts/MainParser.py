@@ -47,11 +47,20 @@ class VkLoader:
         self.createMainDir()
 
     def createMainDir(self):
+        """
+        Creates a directory for current launch
+        """
         self.main_dir = 'VK_Analyzer_' + self.getTime()
         os.mkdir(self.main_dir)
 
     @staticmethod
+
     def cleanName(name):
+        """
+        Removes symbols: ,.<>«»?!@:;#$%^&*/\~`'" from the given string
+        :param name: string
+        :return: string
+        """
         trash = ',.<>«»?!@:;#$%^&*/\\~`\'\"'
         filename = name
         for char in trash:
@@ -59,10 +68,22 @@ class VkLoader:
         return filename
 
     def getFileName(self, name):
+        """
+        Returns a valid filename in current launch directory based on given name
+        :param name:
+        :return:
+        """
         name = self.cleanName(name)
         return self.main_dir + '/' + name + '_' + self.getTime() + '.txt'
 
     def getMessages(self, dir, conversation, count):
+        """
+        Downloads messages from the given conversation and saves into the file in given directory
+        :param dir:
+        :param conversation:
+        :param count:
+        :return:
+        """
         if not dir.endswith('/'):
             dir += '/'
         if conversation['conversation']['peer']['type'] == 'user':
@@ -109,12 +130,22 @@ class VkLoader:
 
     @staticmethod
     def getConversationId(conversation):
+        """
+        Returns conversation id
+        :param conversation:
+        :return:
+        """
         if conversation['conversation']['peer']['type'] == 'user':
             return conversation['conversation']['peer']['local_id']
         else:
             return 2000000000 + conversation['conversation']['peer']['local_id']
 
     def getConversationMembers(self, conversation):
+        """
+        Returns list of conversation members
+        :param conversation:
+        :return:
+        """
         cm = self.admin_api.messages.getConversationMembers(peer_id=self.getConversationId(conversation))
         attempt = 1
         while isinstance(cm, Exception) and attempt < self.MAX_ATTEMPTS:
@@ -130,10 +161,27 @@ class VkLoader:
         return cm
 
     def getConversations(self, count, offset):
+        """
+        Returns list of conversation objects for current user
+        :param count:
+        :param offset:
+        :return:
+        """
         conversations = self.admin_api.messages.getConversations(count=count, offset=offset);
         return conversations['items']
 
     def getPosts(self, owner_id, filename, count):
+        """
+        Downloads owner's posts and saves into given filename
+        :param owner_id:
+        :type owner_id:
+        :param filename:
+        :type filename:
+        :param count:
+        :type count:
+        :return:
+        :rtype:
+        """
         f = open(filename, "w+", True, 'UTF-8')
         f.write('[')
         offset = 0
@@ -155,11 +203,22 @@ class VkLoader:
                 f.write(',')
             f.write(json.dumps(posts['items']))
             offset += tempCount
-            time.sleep(self.SLEEP_TIME);
+            time.sleep(self.SLEEP_TIME)
         f.write(']')
         f.close()
 
     def getAlbums(self, owner_id, filename, count):
+        """
+        Downloads names and links of owners albums and photos and saves into given file
+        :param owner_id:
+        :type owner_id:
+        :param filename:
+        :type filename:
+        :param count:
+        :type count:
+        :return:
+        :rtype:
+        """
         f = open(filename, "w+", True, 'UTF-8')
         f.write('[')
         offset = 0
@@ -190,7 +249,19 @@ class VkLoader:
         f.close()
 
     def __getFriendsInfo(self, user_id, depth, dictOfFriends, fields):
-
+        """
+        SHOULD NOT BE USED (see getFriendsInfo)
+        :param user_id:
+        :type user_id:
+        :param depth:
+        :type depth:
+        :param dictOfFriends:
+        :type dictOfFriends:
+        :param fields:
+        :type fields:
+        :return:
+        :rtype:
+        """
         dictOfFriends[user_id]['isLoaded'] = True
         friends = self.admin_api.friends.get(user_id=user_id, fields=fields)
         attempt = 1
@@ -223,6 +294,13 @@ class VkLoader:
                     time.sleep(self.SMALL_SLEEP_TIME)
 
     def getUserInfo(self, user_id='', filename='', user_fields=None):
+        """
+        Return dict with information about user. possible user_fields: nickname, screen_name, sex, bdate, city,
+        country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity,
+        can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation
+        :param user_id: :type user_id: :param filename: :type filename: :param user_fields: :type user_fields:
+        :return: :rtype:
+        """
         fields = [
             'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
         if not (user_fields is None):
@@ -254,9 +332,21 @@ class VkLoader:
 
     @staticmethod
     def getTime():
+        """
+        Returns string with current date and time
+        :return:
+        :rtype:
+        """
         return str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 
     def makeFullLoad(self, conversations=None):
+        """
+        Loads messages from given conversations, then
+        information, posts and photos from members of those conversations.
+        All the information saved in main launch folder
+        :param conversations:
+        :type conversations:
+        """
         self.createMainDir()
         conversationsDir = self.main_dir + '/conversations'
         try:
@@ -341,6 +431,19 @@ class VkLoader:
         print('done! ' + getTime())
 
     def __getOnlineList(self, user_id, depth, friends_online, friends_online_mobile):
+        """
+        SHOULD NOT BE USED (see getOnlineList)
+        :param user_id:
+        :type user_id:
+        :param depth:
+        :type depth:
+        :param friends_online:
+        :type friends_online:
+        :param friends_online_mobile:
+        :type friends_online_mobile:
+        :return:
+        :rtype:
+        """
         friends = self.admin_api.friends.getOnline(user_id=user_id, online_mobile=1)
         attempt = 1
         while isinstance(friends, Exception):
@@ -359,6 +462,18 @@ class VkLoader:
                 time.sleep(self.SLEEP_TIME)
 
     def getOnline(self, dir='', depth=-1):
+        """
+        Loads information about users online and saves in a new file in given dir.
+        users are:
+         friends (depth = 0)
+         friends and their friends (depth = 1)
+         etc
+         waits for input if depth < 0
+        :param dir:
+        :type dir:
+        :param depth:
+        :type depth:
+        """
         self.main_dir = 'vkAnalyzer' + str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         filename = self.main_dir + '/online.txt'
         if dir:
@@ -385,6 +500,11 @@ class VkLoader:
         print(filename)
 
     def loadConversations(self, conversations):
+        """
+        Loads messages from given conversations and saves into file
+        :param conversations:
+        :type conversations:
+        """
         self.createMainDir()
         conversationsDir = self.main_dir + '/conversations' + self.getTime()
         try:
@@ -414,6 +534,15 @@ class VkLoader:
         print(conversationsDir)
 
     def getFromGroup(self, group_name, maxMembers = -1):
+        """
+        Finds group by name and loads full info about it's members
+        :param group_name:
+        :type group_name:
+        :param maxMembers:
+        :type maxMembers:
+        :return:
+        :rtype:
+        """
         group = self.admin_api.groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
         group_id = group[0]['id']
@@ -453,6 +582,13 @@ class VkLoader:
         return members
 
     def saveToFile(self, obj, name):
+        """
+        Creates a file based on name in current launch directory and saves object as json
+        :param obj:
+        :type obj:
+        :param name:
+        :type name:
+        """
         filename = self.getFileName(name)
         f = open(filename, "w+", True, 'UTF-8')
         f.write(json.dumps(obj))
@@ -460,6 +596,22 @@ class VkLoader:
         print('File saved: ', filename)
 
     def getFriendsInfo(self, user_id, user_fields, depth, filename=''):
+        """
+        Loads information about friends (depth = 0) of give user and returns or,
+        if filename is given, saves to file.
+        if (depth = 1) loads information about frineds and their frineds, etc
+        if (depth < 0) waits for input
+        :param user_id:
+        :type user_id:
+        :param user_fields:
+        :type user_fields:
+        :param depth:
+        :type depth:
+        :param filename:
+        :type filename:
+        :return:
+        :rtype:
+        """
         friends = dict()
         fields = [
             'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
@@ -486,6 +638,15 @@ class VkLoader:
         return friends
 
     def auth(self, tel='', pas=''):
+        """
+        Authorization by phone and password in vk
+        :param tel:
+        :type tel:
+        :param pas:
+        :type pas:
+        :return:
+        :rtype:
+        """
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_api = vkHacked.VKFA(phone, passw)
@@ -497,6 +658,10 @@ class VkLoader:
         return True
 
     def wLastSeen(self):
+        """
+        Saves into a new file in main launch directory base information about all online friends of current user,
+         and their online friends for 12 hours every 15 minutes.
+        """
         i = 0
         print('Last seen...')
         while i < 4 * 3:
@@ -511,9 +676,16 @@ class VkLoader:
                 print(traceback.format_exc())
 
     def watchLastSeen(self):
+        """
+        Launches wLastSeen() in a new thread
+        """
         threading.Thread(target=lambda self: self.wLastSeen(), args=([self])).start()
 
+
     def mainMenu(self):
+        """
+        Console - based main menu. Prints menu in console and handles user input.
+        """
         answers = {
             'A': {'name': ('[A]uth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
                   'foo': lambda: self.auth()},
@@ -540,7 +712,9 @@ class VkLoader:
         self.mainMenu()
 
     def tkMenu(self):
-
+        """
+        Provides graphic interface
+        """
         answers = {
             'A': {'name': ('Auth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
                   'foo': lambda: auth_menu()},
@@ -551,23 +725,29 @@ class VkLoader:
             'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
         }
 
-        def login():
-            self.auth()
-
         root = Tk()
         root.geometry("500x400")
 
         def loadMainMenu():
+            """
+            Loads and shows main menu
+            """
             clear()
             for ans in answers.items():
                 button = Button(bg='white', text=ans[1]['name'], command=lambda name=ans[0]: answers[name]['foo']())
                 button.pack(fill=BOTH, expand=1)
 
         def clear():
+            """
+            Clears the scene - removes all the elements
+            """
             for widget in root.winfo_children():
                 widget.pack_forget()
 
         def group_chosen():
+            """
+            Loads and shows menu for choosing load from group properities
+            """
             clear()
             Label(text="id or name:").pack()
             groupId = Entry(root)
@@ -581,6 +761,9 @@ class VkLoader:
             button.pack(fill=BOTH, expand=1)
 
         def auth_menu():
+            """
+            Loads and shows auth menu
+            """
             clear()
             Label(text="Tel:").pack()
             entryTel = Entry(root)
@@ -588,8 +771,6 @@ class VkLoader:
             Label(text="Pass:").pack()
             entryPas = Entry(root)
             entryPas.pack()
-            button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
-            button.pack(fill=BOTH, expand=1)
             button = Button(bg='white', text='Auth', command=lambda: loadMainMenu() if (
                     entryPas.get() and entryTel.get() and self.auth(tel=entryTel.get(),
                                                                     pas=entryPas.get())) else tkinter.messagebox.showinfo(
@@ -597,6 +778,11 @@ class VkLoader:
             button.pack(fill=BOTH, expand=1)
 
         def conversation_clicked(event):
+            """
+            Enables and disables conversations for further load
+            :param event:
+            :type event:
+            """
             load = not self.tk_buttons[event]['load']
             self.tk_buttons[event]['load'] = load
             self.tk_buttons[event]['button'].config(bg='white' if load else 'red')
@@ -605,7 +791,12 @@ class VkLoader:
             else:
                 self.conversations_to_load.remove(self.tk_buttons[event]['conversation'])
 
+
         def loadConversationsMenu():
+            """
+            Loads and shows available conversations to load
+            """
+            print("Loading converstions...")
             clear()
             Label(text="Red conversations wont be loaded").pack()
             if (len(self.tk_buttons) == 0):

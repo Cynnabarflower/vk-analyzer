@@ -2,6 +2,37 @@ import json
 import pandas
 import os
 import matplotlib.pyplot as pyplot
+import matplotlib.cm as cm
+import datetime
+
+
+#data_frame = pandas.read_csv('C:/Users/Dmitry/PycharmProjects/untitled/venv/Scripts/' + 'Onlineonline_map_sum2.csv')
+
+
+
+
+    for id in online_map:
+       series = pandas.Series(online_map[id])
+       series.name = str(id)
+       data_frame = data_frame.append(series)
+    for id in online_map:
+        for el in online_map[id]:
+            el['online'] = str(el['online'])
+            el['scan'] = str(el['scan'])
+    f = open(dirs[0] + 'online_map3.txt', 'w')
+    json.dump(online_map, f)
+    f.flush()
+    f.close()
+    data_frame.groupby(['city_name'])['id'].count().plot(kind='bar')
+    pyplot.show()
+    data_frame.groupby(['sex'])['id'].count().plot(kind='bar')
+    pyplot.show()
+    data_frame.groupby(['first_name'])['id'].count().plot(kind='bar')
+    # data_frame['first_name'].plot()
+    pyplot.show()
+    #print(data_frame.to_string())
+    print('done')
+
 
 def getData(dir):
     if not dir.endswith('/'):
@@ -12,8 +43,8 @@ def getData(dir):
     data_frame['photos'] = None
     data_frame['posts'] = None
     data_frame['city_name'] = None
-
-    if (False):
+    
+    if (True):
         if (os.path.exists(usersPath)):
             fileTree = os.walk(usersPath)
             for userFolders in fileTree:
@@ -25,12 +56,12 @@ def getData(dir):
                         series.name = str(userInfo['id'])
                         data_frame = data_frame.append(series)
                         if 'city' in userInfo:
-                           data_frame.at[str(userInfo['id']), 'city_name'] = userInfo['city']['title']
+                            data_frame.at[str(userInfo['id']), 'city_name'] = userInfo['city']['title']
                         if os.path.exists(userFolderName + '/info.txt'):
-                            #userPhotos = json.load(open(userFolderName + '/photos.txt'))
+                            # userPhotos = json.load(open(userFolderName + '/photos.txt'))
                             data_frame.at[str(userInfo['id']), 'photos'] = 'userPhotos'
-                        if (os.path.exists(userFolderName+'/posts.txt')):
-                            #userPosts = json.load(open(userFolderName+'/posts.txt'))
+                        if (os.path.exists(userFolderName + '/posts.txt')):
+                            # userPosts = json.load(open(userFolderName+'/posts.txt'))
                             data_frame.at[str(userInfo['id']), 'posts'] = 'userPosts'
             print(data_frame.to_string())
             data_frame.groupby(['city_name'])['id'].count().plot(kind='bar')
@@ -38,9 +69,9 @@ def getData(dir):
             data_frame.groupby(['sex'])['id'].count().plot(kind='bar')
             pyplot.show()
             data_frame.groupby(['first_name'])['id'].count().plot(kind='bar')
-           # data_frame['first_name'].plot()
+            # data_frame['first_name'].plot()
             pyplot.show()
-
+            return
 
     words = dict()
     series = None
@@ -48,7 +79,7 @@ def getData(dir):
         conversationFiles = os.walk(conversationPath)
         for files in conversationFiles:
             for file in files[2]:
-                obj = json.load(open(files[0]+file, 'r'))
+                obj = json.load(open(files[0] + file, 'r'))
                 if (obj):
                     messages = obj[0]
                     for message in messages:
@@ -60,7 +91,7 @@ def getData(dir):
                                 word = word.lower()
                                 while len(word) > 0 and not word[0].isalpha():
                                     word = word[1:]
-                                while len(word) > 0 and not word[len(word)-1].isalpha():
+                                while len(word) > 0 and not word[len(word) - 1].isalpha():
                                     word = word[:-1]
                                 if not word:
                                     continue
@@ -81,6 +112,29 @@ def getData(dir):
 def getPlainTextFromMessages(dataFrame):
     return ''
 
+def getSex(dir):
+    data_frame = pandas.DataFrame()
+    if not dir.endswith('/'):
+         dir += '/'
+    fileTree = os.walk(dir)
+    fileTree.__next__()
+    for onlineFolders in fileTree:
+        for onlineFile in onlineFolders[2]:
+            onlineData = json.load(open(fileName))
+            loaded = 0
+            for id in onlineData:
+                loaded += 1
+                if loaded % 1000:
+                    print(loaded)
+                    break
+                series = pandas.Series(onlineData[id])
+                series.name = str(id)
+                data_frame = data_frame.append(series)
 
-getData('All messages 17.02/')
+    data_frame.plot(kind='bar')
+    pyplot.show()
 
+
+
+getOnlineData('C:/Users/Dmitry/PycharmProjects/untitled/venv/Scripts/Online')
+# getData('All messages 17.02/')
