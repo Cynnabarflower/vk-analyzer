@@ -13,7 +13,7 @@ import datetime
 
     for id in online_map:
        series = pandas.Series(online_map[id])
-       series.name = str(id)
+       ser  ies.name = str(id)
        data_frame = data_frame.append(series)
     for id in online_map:
         for el in online_map[id]:

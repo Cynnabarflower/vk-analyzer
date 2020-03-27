@@ -54,12 +54,11 @@ class VkLoader:
         os.mkdir(self.main_dir)
 
     @staticmethod
-
     def cleanName(name):
         """
         Removes symbols: ,.<>«»?!@:;#$%^&*/\~`'" from the given string
-        :param name: string
-        :return: string
+        :param name:
+        :return:
         """
         trash = ',.<>«»?!@:;#$%^&*/\\~`\'\"'
         filename = name
@@ -402,7 +401,7 @@ class VkLoader:
                         if ('is_closed') in conversationMember and not conversationMember['is_closed']:
                             users.add(conversationMember['id'])
                 i = i + 1
-            except Exception as e:
+            except Exception as    e:
                 print('Got exception:')
                 print(traceback.format_exc())
                 print('working..')
@@ -428,7 +427,8 @@ class VkLoader:
                     print(traceback.format_exc())
                     print('working..')
                     time.sleep(self.BIG_SLEEP_TIME)
-        print('done! ' + getTime())
+                ъ
+          print('done! ' + getTime())
 
     def __getOnlineList(self, user_id, depth, friends_online, friends_online_mobile):
         """
@@ -533,7 +533,7 @@ class VkLoader:
                 time.sleep(self.BIG_SLEEP_TIME)
         print(conversationsDir)
 
-    def getFromGroup(self, group_name, maxMembers = -1):
+    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None):
         """
         Finds group by name and loads full info about it's members
         :param group_name:
@@ -543,6 +543,18 @@ class VkLoader:
         :return:
         :rtype:
         """
+
+        fields = [
+            'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
+        if not (user_fields is None):
+            if isinstance(user_fields, str):
+                fields = user_fields
+            elif isinstance(user_fields, list):
+                fields = str(user_fields)[1::][:-1].replace("'", "").replace('"', '')
+            else:
+                print('Incorrect user fields, should be str')
+                return
+
         group = self.admin_api.groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
         group_id = group[0]['id']
@@ -561,13 +573,7 @@ class VkLoader:
                 execString += ("API.users.get({'user_ids':API.groups.getMembers({'group_id':"
                                + str(group_id) + ",'offset':" + str(offset) +
                                ",'count':" + str(min(members_count - offset, 1000)) +
-                               "}).items,'fields':'nickname,screen_name,sex,"
-                               "bdate, city, country, timezone, photo, "
-                               "has_mobile, contacts, education, online, "
-                               "counters, relation, last_seen, activity, "
-                               "can_write_private_message, can_see_all_posts, "
-                               "can_post, universities, followers_count, "
-                               "counters, occupation'}) ")
+                               "}).items,'fields':'" + fields + "'}) ")
                 call_count += 2
                 offset += min(members_count - offset, 1000)
                 if offset >= members_count:
@@ -577,7 +583,7 @@ class VkLoader:
             call_count = 0
             print('got: ', offset, '/', members_count)
             if offset < members_count:
-                time.sleep(self.BIG_SLEEP_TIME)
+                time.sleep(self.SLEEP_TIME)
         print('done!')
         return members
 
@@ -647,6 +653,8 @@ class VkLoader:
         :return:
         :rtype:
         """
+        pas = '9841b7a33831ef01'
+        tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_api = vkHacked.VKFA(phone, passw)
@@ -664,7 +672,7 @@ class VkLoader:
         """
         i = 0
         print('Last seen...')
-        while i < 4 * 3:
+        while i < 4 * 12:
             try:
                 i = i + 1
                 filename = self.getFileName('last_online')
@@ -680,7 +688,6 @@ class VkLoader:
         Launches wLastSeen() in a new thread
         """
         threading.Thread(target=lambda self: self.wLastSeen(), args=([self])).start()
-
 
     def mainMenu(self):
         """
@@ -755,10 +762,29 @@ class VkLoader:
             Label(text="how many users").pack()
             quan = Entry(root)
             quan.pack()
-            button = Button(bg='white', text='Load', command=lambda: self.saveToFile(self.getFromGroup(groupId.get(), int(quan.get())), 'from_group'))
+            Label(text="fields (separate with comma, leave empty for all)").pack()
+            Label(text="nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile,\n"
+                       "contacts, education, online, counters, relation, last_seen, activity,\n"
+                       "can_write_private_message, can_see_all_posts, can_post, universities,\n"
+                       "followers_count, counters, occupation").pack()
+            user_fields = Entry(root)
+            user_fields.pack()
+            button = Button(bg='white', text='Load', command=lambda: rep(50, lambda: self.saveToFile(
+                self.getFromGroup(groupId.get(), int(quan.get()), user_fields=user_fields.get()), 'from_group')))
             button.pack(fill=BOTH, expand=1)
             button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
             button.pack(fill=BOTH, expand=1)
+
+
+        def rep(quan, foo):
+            print(self.getTime())
+            i = 0
+            while (i < quan):
+                print('repeating: ',i)
+                print((self.getTime()))
+                foo()
+                i += 1
+            print(self.getTime())
 
         def auth_menu():
             """
@@ -790,7 +816,6 @@ class VkLoader:
                 self.conversations_to_load.append(self.tk_buttons[event]['conversation'])
             else:
                 self.conversations_to_load.remove(self.tk_buttons[event]['conversation'])
-
 
         def loadConversationsMenu():
             """
