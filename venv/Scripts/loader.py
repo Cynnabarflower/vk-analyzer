@@ -1,4 +1,4 @@
-import vkHacked
+import vk_caller
 import codecs
 import json
 import time
@@ -7,7 +7,7 @@ import time
 def getUniversities():
     RUSSIA_ID = 1
     unis = dict()
-    admin_api = vkHacked.VKFA('+79629884898', '9841b7a33831ef01')
+    admin_api = vk_caller.VKFA('+79629884898', '9841b7a33831ef01')
     admin_api.auth()
     regions = admin_api.database.getRegions(country_id=1)['items']
     mapDataFile = codecs.open('mapData.js', 'r', "utf-8").read()

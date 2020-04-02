@@ -1,4 +1,4 @@
-import vkHacked
+import vk_caller
 import time
 import os
 import datetime
@@ -36,7 +36,7 @@ class VkLoader:
     post_count = 1000
     users_count = 10000
     friends_depth = 0
-    admin_api = None
+    admin_apis = [None,]
     main_dir = ''
     my_id = -1
     tk_buttons = dict()
@@ -87,7 +87,7 @@ class VkLoader:
             dir += '/'
         if conversation['conversation']['peer']['type'] == 'user':
             conversation_name = str(conversation['conversation']['peer']['id'])
-            user = self.admin_api.users.get(user_id=conversation_name);
+            user = self.admin_apis[0].users.get(user_id=conversation_name);
             conversation_name += ' (' + user[0]['first_name'] + ' ' + user[0]['last_name'] + ')'
             peer_id = conversation['conversation']['peer']['local_id']
         else:
@@ -101,7 +101,7 @@ class VkLoader:
         f.write('[')
         while offset < count:
             tempCount = 200 if count - offset > 200 else count - offset
-            history = self.admin_api.messages.getHistory(peer_id=peer_id, count=tempCount, offset=offset)
+            history = self.admin_apis[0].messages.getHistory(peer_id=peer_id, count=tempCount, offset=offset)
             attempt = 1
             while isinstance(history, Exception) and attempt < self.MAX_ATTEMPTS:
                 if (history.args[0]['error_code'] in self.VK_ERRORS):
@@ -111,7 +111,7 @@ class VkLoader:
                     return
                 print('Exception in getMessages sleeping..  ' + str(history.args[0]['error_msg']))
                 time.sleep(self.BIG_SLEEP_TIME * attempt)
-                history = self.admin_api.messages.getHistory(peer_id=peer_id, count=tempCount, offset=offset)
+                history = self.admin_apis[0].messages.getHistory(peer_id=peer_id, count=tempCount, offset=offset)
                 attempt = attempt + 1
             if attempt == self.MAX_ATTEMPTS:
                 f.write(']')
@@ -145,7 +145,7 @@ class VkLoader:
         :param conversation:
         :return:
         """
-        cm = self.admin_api.messages.getConversationMembers(peer_id=self.getConversationId(conversation))
+        cm = self.admin_apis[0].messages.getConversationMembers(peer_id=self.getConversationId(conversation))
         attempt = 1
         while isinstance(cm, Exception) and attempt < self.MAX_ATTEMPTS:
             if cm.args[0]['error_code'] in self.VK_ERRORS:
@@ -153,7 +153,7 @@ class VkLoader:
                 return {'profiles': []}
             print('Exception in getConversationMembers sleeping.. ' + str(cm.args[0]['error_msg']))
             time.sleep(self.BIG_SLEEP_TIME * attempt)
-            cm = self.admin_api.messages.getConversationMembers(peer_id=self.getConversationId(conversation))
+            cm = self.admin_apis[0].messages.getConversationMembers(peer_id=self.getConversationId(conversation))
             attempt = attempt + 1
         if attempt == self.MAX_ATTEMPTS:
             return {'profiles': []}
@@ -166,7 +166,7 @@ class VkLoader:
         :param offset:
         :return:
         """
-        conversations = self.admin_api.messages.getConversations(count=count, offset=offset);
+        conversations = self.admin_apis[0].messages.getConversations(count=count, offset=offset);
         return conversations['items']
 
     def getPosts(self, owner_id, filename, count):
@@ -186,7 +186,7 @@ class VkLoader:
         offset = 0
         while offset < count:
             tempCount = 200 if count - offset > 200 else count - offset
-            posts = self.admin_api.wall.get(owner_id=owner_id, count=tempCount, offset=offset)
+            posts = self.admin_apis[0].wall.get(owner_id=owner_id, count=tempCount, offset=offset)
             attempt = 1
             while isinstance(posts, Exception) and attempt < self.MAX_ATTEMPTS:
                 if (posts.args[0]['error_code'] in self.VK_ERRORS):
@@ -194,7 +194,7 @@ class VkLoader:
                     return
                 print('Exception in getPosts sleeping..  ' + str(posts.args[0]['error_msg']))
                 time.sleep(self.BIG_SLEEP_TIME * attempt)
-                posts = self.admin_api.wall.get(owner_id=owner_id, count=tempCount, offset=offset)
+                posts = self.admin_apis[0].wall.get(owner_id=owner_id, count=tempCount, offset=offset)
                 attempt = attempt + 1;
             if attempt == self.MAX_ATTEMPTS:
                 return
@@ -223,7 +223,7 @@ class VkLoader:
         offset = 0
         while offset < count:
             tempCount = 200 if count - offset > 200 else count - offset
-            photos = self.admin_api.photos.getAll(owner_id=owner_id, count=tempCount, offset=offset, extended=1)
+            photos = self.admin_apis[0].photos.getAll(owner_id=owner_id, count=tempCount, offset=offset, extended=1)
             attempt = 1
             while isinstance(photos, Exception) and attempt < self.MAX_ATTEMPTS:
                 if photos.args[0]['error_code'] in self.VK_ERRORS:
@@ -231,7 +231,7 @@ class VkLoader:
                     return
                 print('Exception in getAlbums sleeping..  ' + str(photos.args[0]['error_msg']))
                 time.sleep(self.BIG_SLEEP_TIME * attempt)
-                photos = self.admin_api.photos.getAll(owner_id=owner_id, count=tempCount, offset=offset, extended=1)
+                photos = self.admin_apis[0].photos.getAll(owner_id=owner_id, count=tempCount, offset=offset, extended=1)
                 attempt = attempt + 1
             if attempt == self.MAX_ATTEMPTS:
                 f.write(']')
@@ -262,7 +262,7 @@ class VkLoader:
         :rtype:
         """
         dictOfFriends[user_id]['isLoaded'] = True
-        friends = self.admin_api.friends.get(user_id=user_id, fields=fields)
+        friends = self.admin_apis[0].friends.get(user_id=user_id, fields=fields)
         attempt = 1
         while isinstance(friends, Exception) and attempt < self.MAX_ATTEMPTS:
             if (friends.args[0]['error_code'] in self.VK_ERRORS):
@@ -270,7 +270,7 @@ class VkLoader:
                 return
             print('Exception in getFriendsInfo sleeping..  ' + str(friends.args[0]['error_msg']))
             time.sleep(self.BIG_SLEEP_TIME * attempt)
-            friends = self.admin_api.friends.get(user_id=user_id, fields=fields)
+            friends = self.admin_apis[0].friends.get(user_id=user_id, fields=fields)
             attempt = attempt + 1
         if attempt == self.MAX_ATTEMPTS:
             return
@@ -310,15 +310,16 @@ class VkLoader:
             else:
                 print('Incorrect user fields, should be str')
                 return
-        user = self.admin_api.users.get(user_id=user_id, fields=fields)
+        user = self.admin_apis[0].users.get(user_id=user_id, fields=fields)
         attempt = 1
+
         while isinstance(user, Exception) and attempt < self.MAX_ATTEMPTS:
             if user.args[0]['error_code'] in self.VK_ERRORS:
                 print(str(user.args[0]['error_msg']))
                 return None
             print('Exception in getUserInfo sleeping..  ' + str(user.args[0]['error_msg']))
             time.sleep(self.BIG_SLEEP_TIME * attempt)
-            user = self.admin_api.users.get(user_id=user_id, fields=fields)
+            user = self.admin_apis[0].users.get(user_id=user_id, fields=fields)
             attempt = attempt + 1
         if attempt == self.MAX_ATTEMPTS:
             return None
@@ -413,7 +414,7 @@ class VkLoader:
             if i % 10 == 0:
                 print(i)
             i = i + 1
-            user = self.admin_api.users.get(user_id=userId)[0]
+            user = self.admin_apis[0].users.get(user_id=userId)[0]
             username = str(user['id']) + ' (' + user['first_name'] + ' ' + user['last_name'] + ')'
             userDir = usersDir + '/' + self.cleanName(username)
             if not userId in friends:
@@ -427,8 +428,8 @@ class VkLoader:
                     print(traceback.format_exc())
                     print('working..')
                     time.sleep(self.BIG_SLEEP_TIME)
-                ъ
-          print('done! ' + getTime())
+
+        print('done! ' + getTime())
 
     def __getOnlineList(self, user_id, depth, friends_online, friends_online_mobile):
         """
@@ -444,14 +445,14 @@ class VkLoader:
         :return:
         :rtype:
         """
-        friends = self.admin_api.friends.getOnline(user_id=user_id, online_mobile=1)
+        friends = self.admin_apis[0].friends.getOnline(user_id=user_id, online_mobile=1)
         attempt = 1
         while isinstance(friends, Exception):
             print('in getOnlineList: ' + str(friends.args[0]['error_msg']))
             if friends.args[0]['error_code'] in self.VK_ERRORS:
                 return
             time.sleep(self.BIG_SLEEP_TIME * attempt)
-            friends = self.admin_api.friends.getOnline(user_id=user_id, online_mobile=1)
+            friends = self.admin_apis[0].friends.getOnline(user_id=user_id, online_mobile=1)
             attempt = attempt + 1
         friends_online.update(friends['online'])
         friends_online_mobile.update(friends['online_mobile'])
@@ -533,7 +534,7 @@ class VkLoader:
                 time.sleep(self.BIG_SLEEP_TIME)
         print(conversationsDir)
 
-    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None):
+    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None, offset = 0):
         """
         Finds group by name and loads full info about it's members
         :param group_name:
@@ -544,8 +545,7 @@ class VkLoader:
         :rtype:
         """
 
-        fields = [
-            'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
+        fields = 'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation'
         if not (user_fields is None):
             if isinstance(user_fields, str):
                 fields = user_fields
@@ -555,13 +555,13 @@ class VkLoader:
                 print('Incorrect user fields, should be str')
                 return
 
-        group = self.admin_api.groups.getById(group_id=group_name, fields="members_count")
+
+        group = self.admin_apis[0].groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
         group_id = group[0]['id']
         members_count = group[0]['members_count']
         if maxMembers > 0:
             members_count = min(members_count, maxMembers)
-        offset = 0
         execString = "return "
         call_count = 0
         members = []
@@ -578,7 +578,7 @@ class VkLoader:
                 offset += min(members_count - offset, 1000)
                 if offset >= members_count:
                     break
-            members.append(self.admin_api.execute(code=execString + ';'))
+            members.append(self.admin_apis[0].execute(code=execString + ';'))
             execString = "return "
             call_count = 0
             print('got: ', offset, '/', members_count)
@@ -653,14 +653,18 @@ class VkLoader:
         :return:
         :rtype:
         """
-        pas = '9841b7a33831ef01'
-        tel = '+79629884898'
+
+        # pas = '9841b7a33831ef01'
+        # tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
-        self.admin_api = vkHacked.VKFA(phone, passw)
-        auth = self.admin_api.auth()
+        self.admin_apis[0] = vk_caller.VKFA(phone, passw)
+        auth = self.admin_apis[0].auth()
         if not auth:
             return False
+        print(auth)
+        # self.admin_apis.insert(1, vk_caller.VKFA('+15102750266', 'wZigy4cuHNi4KQy'))
+        # auth = self.admin_apis[1].auth()
         print(auth)
         self.my_id = self.getUserInfo('', '')['id']
         return True
@@ -694,7 +698,7 @@ class VkLoader:
         Console - based main menu. Prints menu in console and handles user input.
         """
         answers = {
-            'A': {'name': ('[A]uth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
+            'A': {'name': ('[A]uth ' + ('' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
                   'foo': lambda: self.auth()},
             'F': {'name': '[F]ull load', 'foo': lambda: self.makeFullLoad()},
             'O': {'name': '[O]nline friends',
@@ -718,17 +722,34 @@ class VkLoader:
 
         self.mainMenu()
 
+    def load_groups(self):
+        f = open('groups.txt', 'r')
+        for line in f:
+            ids = line.split(sep='-')
+            reg = ids[ids.__len__()-1]
+            ids.remove(reg)
+            reg = reg.replace('\n','')
+            print(reg)
+            for id in ids:
+                if id and id.isdigit():
+                    self.saveToFile(
+                        obj=self.getFromGroup(group_name=id),
+                        name= 'RU-'+reg+'_'+id
+                    )
+
     def tkMenu(self):
         """
         Provides graphic interface
         """
         answers = {
-            'A': {'name': ('Auth ' + ('' if self.admin_api is None else '(logged in: ' + self.admin_api.login + ')')),
+            'A': {'name': ('Auth ' + ('' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
                   'foo': lambda: auth_menu()},
+            'FF': {'name': 'Full load', 'foo': lambda: loadConversationsMenu()},
             'F': {'name': 'Load conversations', 'foo': lambda: loadConversationsMenu()},
             'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
             'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
             'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
+            'GS': {'name': 'Load groups', 'foo': lambda: self.load_groups()},
             'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
         }
 
@@ -769,8 +790,11 @@ class VkLoader:
                        "followers_count, counters, occupation").pack()
             user_fields = Entry(root)
             user_fields.pack()
-            button = Button(bg='white', text='Load', command=lambda: rep(50, lambda: self.saveToFile(
-                self.getFromGroup(groupId.get(), int(quan.get()), user_fields=user_fields.get()), 'from_group')))
+            Label(text="folder prefix").pack()
+            folder_prefix = Entry(root)
+            folder_prefix.pack()
+            button = Button(bg='white', text='Load', command=lambda: rep(1, lambda: self.saveToFile(
+                self.getFromGroup(groupId.get(), int(quan.get()) if quan.get() else -1, user_fields=user_fields.get()), folder_prefix.get()+'_from_group')))
             button.pack(fill=BOTH, expand=1)
             button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
             button.pack(fill=BOTH, expand=1)
@@ -785,6 +809,23 @@ class VkLoader:
                 foo()
                 i += 1
             print(self.getTime())
+
+        def get_from_group_valid(id, quan, fields = ''):
+            group = self.admin_apis[0].groups.getById(group_id = id, fields = 'members_count')
+            time.sleep(self.SMALL_SLEEP_TIME)
+            members_count = group[0]['members_count']
+            users_need = round(quan)
+            valid_users = {}
+            offset = members_count - users_need
+            while users_need > valid_users.__len__() and offset >= 0:
+                last_users = self.getFromGroup(id, users_need - valid_users.__len__(), offset=offset)
+                for user in last_users:
+                    if not "deactivated" in user and not "is_closed" in user:
+                        valid_users[user['id']] = user
+                offset -= (users_need - valid_users.__len__())
+            return valid_users
+
+
 
         def auth_menu():
             """
@@ -839,7 +880,7 @@ class VkLoader:
                     conversation_name = False
                     peer_id = conversation['conversation']['peer']['local_id']
                     if conversation['conversation']['peer']['type'] == 'user':
-                        user = self.admin_api.users.get(user_id=str(conversation['conversation']['peer']['id']))
+                        user = self.admin_apis[0].users.get(user_id=str(conversation['conversation']['peer']['id']))
                         conversation_name = user[0]['first_name'] + ' ' + user[0]['last_name']
                     else:
                         if ('chat_settings' in conversation['conversation']):
