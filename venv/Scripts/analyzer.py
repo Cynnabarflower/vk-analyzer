@@ -317,7 +317,7 @@ class ChooseFilesPage(tk.Frame):
                 self.loadFile(file)
                 progress += step
                 yield progress
-        # self.controller.update_users(self.users)
+            self.controller.update_users(self.users)
         # print('files loaded')
 
     def loadFile(self, file):
@@ -384,7 +384,7 @@ class RegionalizePage(tk.Frame):
         button1.pack()
         button2.pack()
 
-    def draw_map(self, loop = True):
+    def draw_map(self, loop = True, draw_labels = False):
         if self.controller.page_number == 1:
             c = self.canvas
             c.delete('all')
@@ -426,7 +426,7 @@ class RegionalizePage(tk.Frame):
                             polyminy = min((90 - point[0]) * scaleY, polyminy)
                         poly_coords += [point[1] * scaleX, (90 - point[0]) * scaleY]
                     c.create_polygon(poly_coords, fill=regcolor, outline='black')
-                    if drawQuan:
+                    if drawQuan and draw_labels:
                         c.create_text((polyminx+polymaxx)/2, (polyminy+polymaxy)/2, text = str(regions[reg['name']]) if reg['name'] in regions else '')
                         drawQuan = False
         if (loop):
@@ -445,7 +445,7 @@ class RegionalizePage(tk.Frame):
         cities['2'] = {'region': 'RU-LEN'}
 
         threads = []
-        step = min(5000, round(u_len))
+        step = min(50000, round(u_len))
         while i < u_len:
             threads.append(Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i+step), i]), daemon= True))
             i += min(u_len, step)

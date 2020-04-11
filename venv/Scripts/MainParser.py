@@ -756,11 +756,15 @@ class VkLoader:
                 'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
                 'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
                 'GS': {'name': 'Load groups', 'foo': lambda: self.load_groups()},
+                'LID': {'name': 'Load by id', 'foo' : lambda: load_by_id() },
                 'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
             }
 
             root = Tk()
             root.geometry("500x400")
+
+            def load_by_id():
+                
 
             def loadMainMenu():
                 """
