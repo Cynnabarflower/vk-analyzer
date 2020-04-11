@@ -36,7 +36,7 @@ class VkLoader:
     post_count = 1000
     users_count = 10000
     friends_depth = 0
-    admin_apis = [None,]
+    admin_apis = [None, ]
     main_dir = ''
     my_id = -1
     tk_buttons = dict()
@@ -534,7 +534,7 @@ class VkLoader:
                 time.sleep(self.BIG_SLEEP_TIME)
         print(conversationsDir)
 
-    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None, offset = 0):
+    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None, offset=0):
         """
         Finds group by name and loads full info about it's members
         :param group_name:
@@ -554,7 +554,6 @@ class VkLoader:
             else:
                 print('Incorrect user fields, should be str')
                 return
-
 
         group = self.admin_apis[0].groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
@@ -654,8 +653,8 @@ class VkLoader:
         :rtype:
         """
 
-        # pas = '9841b7a33831ef01'
-        # tel = '+79629884898'
+        pas = '9841b7a33831ef01'
+        tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_apis[0] = vk_caller.VKFA(phone, passw)
@@ -698,7 +697,8 @@ class VkLoader:
         Console - based main menu. Prints menu in console and handles user input.
         """
         answers = {
-            'A': {'name': ('[A]uth ' + ('' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
+            'A': {'name': ('[A]uth ' + (
+                '' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
                   'foo': lambda: self.auth()},
             'F': {'name': '[F]ull load', 'foo': lambda: self.makeFullLoad()},
             'O': {'name': '[O]nline friends',
@@ -726,182 +726,186 @@ class VkLoader:
         f = open('groups.txt', 'r')
         for line in f:
             ids = line.split(sep='-')
-            reg = ids[ids.__len__()-1]
+            reg = ids[ids.__len__() - 1]
             ids.remove(reg)
-            reg = reg.replace('\n','')
+            reg = reg.replace('\n', '')
             print(reg)
             for id in ids:
                 if id and id.isdigit():
-                    self.saveToFile(
-                        obj=self.getFromGroup(group_name=id),
-                        name= 'RU-'+reg+'_'+id
-                    )
+                    loaded_users = self.getFromGroup(group_name=id)
+                    counter = 1
+                    while loaded_users.__len__():
+                        self.saveToFile(
+                            obj=loaded_users[0 : min(1000, loaded_users.__len__())],
+                            name='RU-' + reg + '_' + id + '_' + str(counter))
+                        counter += 1
 
-    def tkMenu(self):
-        """
-        Provides graphic interface
-        """
-        answers = {
-            'A': {'name': ('Auth ' + ('' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
-                  'foo': lambda: auth_menu()},
-            'FF': {'name': 'Full load', 'foo': lambda: loadConversationsMenu()},
-            'F': {'name': 'Load conversations', 'foo': lambda: loadConversationsMenu()},
-            'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
-            'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
-            'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
-            'GS': {'name': 'Load groups', 'foo': lambda: self.load_groups()},
-            'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
-        }
 
-        root = Tk()
-        root.geometry("500x400")
 
-        def loadMainMenu():
+        def tkMenu(self):
             """
-            Loads and shows main menu
+            Provides graphic interface
             """
-            clear()
-            for ans in answers.items():
-                button = Button(bg='white', text=ans[1]['name'], command=lambda name=ans[0]: answers[name]['foo']())
+            answers = {
+                'A': {'name': ('Auth ' + (
+                    '' if self.admin_apis[0] is None else '(logged in: ' + self.admin_apis[0].login + ')')),
+                      'foo': lambda: auth_menu()},
+                'FF': {'name': 'Full load', 'foo': lambda: loadConversationsMenu()},
+                'F': {'name': 'Load conversations', 'foo': lambda: loadConversationsMenu()},
+                'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
+                'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
+                'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
+                'GS': {'name': 'Load groups', 'foo': lambda: self.load_groups()},
+                'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
+            }
+
+            root = Tk()
+            root.geometry("500x400")
+
+            def loadMainMenu():
+                """
+                Loads and shows main menu
+                """
+                clear()
+                for ans in answers.items():
+                    button = Button(bg='white', text=ans[1]['name'], command=lambda name=ans[0]: answers[name]['foo']())
+                    button.pack(fill=BOTH, expand=1)
+
+            def clear():
+                """
+                Clears the scene - removes all the elements
+                """
+                for widget in root.winfo_children():
+                    widget.pack_forget()
+
+            def group_chosen():
+                """
+                Loads and shows menu for choosing load from group properities
+                """
+                clear()
+                Label(text="id or name:").pack()
+                groupId = Entry(root)
+                groupId.pack()
+                Label(text="how many users").pack()
+                quan = Entry(root)
+                quan.pack()
+                Label(text="fields (separate with comma, leave empty for all)").pack()
+                Label(text="nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile,\n"
+                           "contacts, education, online, counters, relation, last_seen, activity,\n"
+                           "can_write_private_message, can_see_all_posts, can_post, universities,\n"
+                           "followers_count, counters, occupation").pack()
+                user_fields = Entry(root)
+                user_fields.pack()
+                Label(text="folder prefix").pack()
+                folder_prefix = Entry(root)
+                folder_prefix.pack()
+                button = Button(bg='white', text='Load', command=lambda: rep(1, lambda: self.saveToFile(
+                    self.getFromGroup(groupId.get(), int(quan.get()) if quan.get() else -1,
+                                      user_fields=user_fields.get()), folder_prefix.get() + '_from_group')))
+                button.pack(fill=BOTH, expand=1)
+                button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
                 button.pack(fill=BOTH, expand=1)
 
-        def clear():
-            """
-            Clears the scene - removes all the elements
-            """
-            for widget in root.winfo_children():
-                widget.pack_forget()
+            def rep(quan, foo):
+                print(self.getTime())
+                i = 0
+                while (i < quan):
+                    print('repeating: ', i)
+                    print((self.getTime()))
+                    foo()
+                    i += 1
+                print(self.getTime())
 
-        def group_chosen():
-            """
-            Loads and shows menu for choosing load from group properities
-            """
-            clear()
-            Label(text="id or name:").pack()
-            groupId = Entry(root)
-            groupId.pack()
-            Label(text="how many users").pack()
-            quan = Entry(root)
-            quan.pack()
-            Label(text="fields (separate with comma, leave empty for all)").pack()
-            Label(text="nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile,\n"
-                       "contacts, education, online, counters, relation, last_seen, activity,\n"
-                       "can_write_private_message, can_see_all_posts, can_post, universities,\n"
-                       "followers_count, counters, occupation").pack()
-            user_fields = Entry(root)
-            user_fields.pack()
-            Label(text="folder prefix").pack()
-            folder_prefix = Entry(root)
-            folder_prefix.pack()
-            button = Button(bg='white', text='Load', command=lambda: rep(1, lambda: self.saveToFile(
-                self.getFromGroup(groupId.get(), int(quan.get()) if quan.get() else -1, user_fields=user_fields.get()), folder_prefix.get()+'_from_group')))
-            button.pack(fill=BOTH, expand=1)
-            button = Button(bg='white', text='To Menu', command=lambda: loadMainMenu())
-            button.pack(fill=BOTH, expand=1)
+            def get_from_group_valid(id, quan, fields=''):
+                group = self.admin_apis[0].groups.getById(group_id=id, fields='members_count')
+                time.sleep(self.SMALL_SLEEP_TIME)
+                members_count = group[0]['members_count']
+                users_need = round(quan)
+                valid_users = {}
+                offset = members_count - users_need
+                while users_need > valid_users.__len__() and offset >= 0:
+                    last_users = self.getFromGroup(id, users_need - valid_users.__len__(), offset=offset)
+                    for user in last_users:
+                        if not "deactivated" in user and not "is_closed" in user:
+                            valid_users[user['id']] = user
+                    offset -= (users_need - valid_users.__len__())
+                return valid_users
 
+            def auth_menu():
+                """
+                Loads and shows auth menu
+                """
+                clear()
+                Label(text="Tel:").pack()
+                entryTel = Entry(root)
+                entryTel.pack()
+                Label(text="Pass:").pack()
+                entryPas = Entry(root)
+                entryPas.pack()
+                button = Button(bg='white', text='Auth', command=lambda: loadMainMenu() if (
+                        entryPas.get() and entryTel.get() and self.auth(tel=entryTel.get(),
+                                                                        pas=entryPas.get())) else tkinter.messagebox.showinfo(
+                    "", "Failed to login"))
+                button.pack(fill=BOTH, expand=1)
 
-        def rep(quan, foo):
-            print(self.getTime())
-            i = 0
-            while (i < quan):
-                print('repeating: ',i)
-                print((self.getTime()))
-                foo()
-                i += 1
-            print(self.getTime())
+            def conversation_clicked(event):
+                """
+                Enables and disables conversations for further load
+                :param event:
+                :type event:
+                """
+                load = not self.tk_buttons[event]['load']
+                self.tk_buttons[event]['load'] = load
+                self.tk_buttons[event]['button'].config(bg='white' if load else 'red')
+                if load:
+                    self.conversations_to_load.append(self.tk_buttons[event]['conversation'])
+                else:
+                    self.conversations_to_load.remove(self.tk_buttons[event]['conversation'])
 
-        def get_from_group_valid(id, quan, fields = ''):
-            group = self.admin_apis[0].groups.getById(group_id = id, fields = 'members_count')
-            time.sleep(self.SMALL_SLEEP_TIME)
-            members_count = group[0]['members_count']
-            users_need = round(quan)
-            valid_users = {}
-            offset = members_count - users_need
-            while users_need > valid_users.__len__() and offset >= 0:
-                last_users = self.getFromGroup(id, users_need - valid_users.__len__(), offset=offset)
-                for user in last_users:
-                    if not "deactivated" in user and not "is_closed" in user:
-                        valid_users[user['id']] = user
-                offset -= (users_need - valid_users.__len__())
-            return valid_users
+            def loadConversationsMenu():
+                """
+                Loads and shows available conversations to load
+                """
+                print("Loading converstions...")
+                clear()
+                Label(text="Red conversations wont be loaded").pack()
+                if (len(self.tk_buttons) == 0):
+                    conversations = self.getConversations(20, 0)
+                else:
+                    conversations = self.tk_buttons.items()
 
+                Button(bg='white', text='Load!',
+                       command=lambda: self.loadConversations(self.conversations_to_load)).pack(
+                    fill=BOTH, expand=1)
+                Button(bg='white', text='Back', command=lambda: loadMainMenu()).pack(fill=BOTH, expand=1)
+                Label(text="Conversations:").pack()
+                if len(self.tk_buttons) == 0:
+                    for conversation in conversations:
+                        time.sleep(0.3)
+                        conversation_name = False
+                        peer_id = conversation['conversation']['peer']['local_id']
+                        if conversation['conversation']['peer']['type'] == 'user':
+                            user = self.admin_apis[0].users.get(user_id=str(conversation['conversation']['peer']['id']))
+                            conversation_name = user[0]['first_name'] + ' ' + user[0]['last_name']
+                        else:
+                            if ('chat_settings' in conversation['conversation']):
+                                conversation_name = conversation['conversation']['chat_settings']['title']
 
+                        if (conversation_name):
+                            button = Button(bg='white', text=conversation_name,
+                                            command=lambda name=conversation_name: conversation_clicked(name))
+                            button.pack(fill=BOTH, expand=1)
+                            self.tk_buttons.update(
+                                {conversation_name: {'button': button, 'conversation': conversation, 'load': True}})
+                            self.conversations_to_load.append(conversation)
+                else:
+                    for conversation in conversations:
+                        conversation[1]['button'].pack(fill=BOTH, expand=1)
 
-        def auth_menu():
-            """
-            Loads and shows auth menu
-            """
-            clear()
-            Label(text="Tel:").pack()
-            entryTel = Entry(root)
-            entryTel.pack()
-            Label(text="Pass:").pack()
-            entryPas = Entry(root)
-            entryPas.pack()
-            button = Button(bg='white', text='Auth', command=lambda: loadMainMenu() if (
-                    entryPas.get() and entryTel.get() and self.auth(tel=entryTel.get(),
-                                                                    pas=entryPas.get())) else tkinter.messagebox.showinfo(
-                "", "Failed to login"))
-            button.pack(fill=BOTH, expand=1)
+            auth_menu()
+            root.mainloop()
 
-        def conversation_clicked(event):
-            """
-            Enables and disables conversations for further load
-            :param event:
-            :type event:
-            """
-            load = not self.tk_buttons[event]['load']
-            self.tk_buttons[event]['load'] = load
-            self.tk_buttons[event]['button'].config(bg='white' if load else 'red')
-            if load:
-                self.conversations_to_load.append(self.tk_buttons[event]['conversation'])
-            else:
-                self.conversations_to_load.remove(self.tk_buttons[event]['conversation'])
-
-        def loadConversationsMenu():
-            """
-            Loads and shows available conversations to load
-            """
-            print("Loading converstions...")
-            clear()
-            Label(text="Red conversations wont be loaded").pack()
-            if (len(self.tk_buttons) == 0):
-                conversations = self.getConversations(20, 0)
-            else:
-                conversations = self.tk_buttons.items()
-
-            Button(bg='white', text='Load!', command=lambda: self.loadConversations(self.conversations_to_load)).pack(
-                fill=BOTH, expand=1)
-            Button(bg='white', text='Back', command=lambda: loadMainMenu()).pack(fill=BOTH, expand=1)
-            Label(text="Conversations:").pack()
-            if len(self.tk_buttons) == 0:
-                for conversation in conversations:
-                    time.sleep(0.3)
-                    conversation_name = False
-                    peer_id = conversation['conversation']['peer']['local_id']
-                    if conversation['conversation']['peer']['type'] == 'user':
-                        user = self.admin_apis[0].users.get(user_id=str(conversation['conversation']['peer']['id']))
-                        conversation_name = user[0]['first_name'] + ' ' + user[0]['last_name']
-                    else:
-                        if ('chat_settings' in conversation['conversation']):
-                            conversation_name = conversation['conversation']['chat_settings']['title']
-
-                    if (conversation_name):
-                        button = Button(bg='white', text=conversation_name,
-                                        command=lambda name=conversation_name: conversation_clicked(name))
-                        button.pack(fill=BOTH, expand=1)
-                        self.tk_buttons.update(
-                            {conversation_name: {'button': button, 'conversation': conversation, 'load': True}})
-                        self.conversations_to_load.append(conversation)
-            else:
-                for conversation in conversations:
-                    conversation[1]['button'].pack(fill=BOTH, expand=1)
-
-        auth_menu()
-        root.mainloop()
-
-
-VkLoader().tkMenu()
-# makeFullLoad()
-# auth()
-# getOnline()
+    VkLoader().tkMenu()
+    # makeFullLoad()
+    # auth()
+    # getOnline()
