@@ -5,13 +5,14 @@ import matplotlib.pyplot as pyplot
 import matplotlib.cm as cm
 import datetime
 import tkinter as tk
+from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-import pygubu
 import tempfile
 from threading import Thread
 import time
 import random
 import threading
+import math
 
 # data_frame = pandas.read_csv('C:/Users/Dmitry/PycharmProjects/untitled/venv/Scripts/' + 'Onlineonline_map_sum2.csv')
 
@@ -62,7 +63,7 @@ def getData(dir):
                         series.name = str(userInfo['id'])
                         data_frame = data_frame.append(series)
                         if 'city' in userInfo:
-                            data_frame.at[str(userInfo['id']), 'city_name'] = userInfo['city']['title']
+                            data_frame.at[str(userIЦnfo['id']), 'city_name'] = userInfo['city']['title']
                         if os.path.exists(userFolderName + '/info.txt'):
                             # userPhotos = json.load(open(userFolderName + '/photos.txt'))
                             data_frame.at[str(userInfo['id']), 'photos'] = 'userPhotos'
@@ -142,6 +143,46 @@ def getSex(dir):
     pyplot.show()
 
 
+class ProgressButton(tk.Frame):
+    def __init__(self, parent, w = 120, h = 26, backgroundcolor = '#ffffff',  onclicked = lambda e: None, text = '', textcolor = '#000000', fillcolor = "#44ff44"):
+        tk.Frame.__init__(self, parent)
+        self.w = w
+        self.h = h
+        self.text = text
+        self.textcolor = textcolor
+        self.backgroundcolor = backgroundcolor
+        self.fillcolor = fillcolor
+        self.onclicked = onclicked
+        c = tk.Canvas(self, width=w, height=h, bg=backgroundcolor)
+        c.bind("<Button-1>", self.clicked)
+        c.pack()
+        self.canvas = c
+        self.initcanvas()
+
+
+    def clicked(self, e):
+        gen = self.onclicked()
+        i = 100
+        for i in gen:
+            print(i)
+            self.drawProgress(i)
+            self.update()
+        if i < 100:
+            self.drawProgress(100)
+
+    def initcanvas(self):
+        self.canvas.delete('all')
+        # self.canvas.create_rectangle(0, 0, prorgess / 100 * self.w, self.h, outline=self.backgroundcolor, fill=self.backgroundcolor)
+        self.canvas.create_text(self.w / 2, self.h / 2, text=self.text, fill=self.textcolor)
+
+    def drawProgress(self, prorgess):
+        self.canvas.delete('all')
+        self.canvas.create_rectangle(0, 0, prorgess/100*self.w, self.h, outline=self.fillcolor, fill=self.fillcolor)
+        if prorgess < 100:
+            self.canvas.create_text(self.w/2, self.h/2, text=str(math.floor(prorgess))+'%', fill=self.textcolor)
+        else:
+            self.canvas.create_text(self.w / 2, self.h / 2, text=str('done!'), fill=self.textcolor)
+            self.after(1000, self.initcanvas)
 
 class Gui(tk.Tk):
 
@@ -239,22 +280,23 @@ class ChooseFilesPage(tk.Frame):
         button1 = tk.Button(self, text="Add folder",
                             command=lambda: self.addFolder())
         button1.grid(row = 1, column = 1)
-        buttonLoadFiles = tk.Button(self, text='Load files', command=lambda: self.loadFiles())
-        buttonLoadFiles.grid(row = 4, column = 0)
+        self.progressButton = ProgressButton(parent=self, onclicked=self.loadFiles, text='Load files')
+        self.progressButton.grid(row=6, column = 0)
         button1 = tk.Button(self, text=">",
                             command=lambda: controller.show_next())
-        button1.grid(row = 5, column = 2)
+        button1.grid(row = 7, column = 2)
 
     def addFile(self):
-        addedFile = tk.filedialog.askopenfilename(initialdir="/", title="Select vka file",
+        addedFiles = tk.filedialog.askopenfilenames(title="Select vka file",
                                                filetypes=([ ("All", "*.*"), ("vka", "*.vka")]))
-        for f in self.filesToRead:
-            if f == addedFile:
-                #addedFile = ''
-                break
-        if addedFile:
-            self.filesToRead += [addedFile]
-            self.listBox.insert(tk.END, addedFile.split('/')[-1] + ' (' + addedFile + ')')
+        for addedFile in addedFiles:
+            for f in self.filesToRead:
+                if f == addedFile:
+                    #addedFile = ''
+                    break
+            if addedFile:
+                self.filesToRead += [addedFile]
+                self.listBox.insert(tk.END, addedFile.split('/')[-1] + ' (' + addedFile + ')')
 
     def addFolder(self):
         addedDir = tk.filedialog.askdirectory(initialdir="/", title="Select vka file")
@@ -268,10 +310,15 @@ class ChooseFilesPage(tk.Frame):
 
 
     def loadFiles(self):
-        for file in self.filesToRead:
-            self.loadFile(file)
-        self.controller.update_users(self.users)
-        print('files loaded')
+        progress = 0
+        if self.filesToRead.__len__() > 0:
+            step = 100/self.filesToRead.__len__()
+            for file in self.filesToRead:
+                self.loadFile(file)
+                progress += step
+                yield progress
+        # self.controller.update_users(self.users)
+        # print('files loaded')
 
     def loadFile(self, file):
         f = open(file, 'r')
@@ -337,51 +384,53 @@ class RegionalizePage(tk.Frame):
         button1.pack()
         button2.pack()
 
-    def draw_map(self):
-        c = self.canvas
-        c.delete('all')
-        coords = self.regions_coordinates
-        minreg = 999999
-        maxreg = -99
-        with self.regions_lock:
-            regions = self.regions.copy()
+    def draw_map(self, loop = True):
+        if self.controller.page_number == 1:
+            c = self.canvas
+            c.delete('all')
+            coords = self.regions_coordinates
+            minreg = 999999
+            maxreg = -99
+            with self.regions_lock:
+                regions = self.regions.copy()
 
-        for reg in regions:
-            minreg = min(minreg, self.regions[reg])
-            maxreg = max(maxreg, self.regions[reg])
+            for reg in regions:
+                minreg = min(minreg, self.regions[reg])
+                maxreg = max(maxreg, self.regions[reg])
 
-        for reg in coords:
-            drawQuan = True
-            for poly in reg['coordinates'][0]:
-                if reg['name'] in regions:
-                    try:
-                        regcolor = self.color_gradient[round((regions[reg['name']]-minreg)/(maxreg-minreg)*(self.color_gradient.__len__()-1))]
-                    except Exception as e:
+            for reg in coords:
+                drawQuan = True
+                for poly in reg['coordinates'][0]:
+                    if reg['name'] in regions:
+                        try:
+                            regcolor = self.color_gradient[round((regions[reg['name']]-minreg)/(maxreg-minreg)*(self.color_gradient.__len__()-1))]
+                        except Exception as e:
 
-                        print(minreg, ' ', maxreg, ' ', regions[reg['name']], ' ', round(
-                            (regions[reg['name']] - minreg) / (maxreg - minreg) * (self.color_gradient.__len__() - 1)))
+                            print(minreg, ' ', maxreg, ' ', regions[reg['name']], ' ', round(
+                                (regions[reg['name']] - minreg) / (maxreg - minreg) * (self.color_gradient.__len__() - 1)))
 
-                else:
-                    regcolor = '#DDDDDD'
-                poly_coords = []
-                scaleX = 4
-                scaleY = scaleX * 5 / 3
-                polyminx = 9999
-                polymaxx = -99
-                polyminy = 9999
-                polymaxy = -99
-                for point in poly:
+                    else:
+                        regcolor = '#DDDDDD'
+                    poly_coords = []
+                    scaleX = 4
+                    scaleY = scaleX * 5 / 3
+                    polyminx = 9999
+                    polymaxx = -99
+                    polyminy = 9999
+                    polymaxy = -99
+                    for point in poly:
+                        if drawQuan:
+                            polymaxx = max(point[1] * scaleX, polymaxx)
+                            polyminx = min(point[1] * scaleX, polyminx)
+                            polymaxy = max((90 - point[0]) * scaleY, polymaxy)
+                            polyminy = min((90 - point[0]) * scaleY, polyminy)
+                        poly_coords += [point[1] * scaleX, (90 - point[0]) * scaleY]
+                    c.create_polygon(poly_coords, fill=regcolor, outline='black')
                     if drawQuan:
-                        polymaxx = max(point[1] * scaleX, polymaxx)
-                        polyminx = min(point[1] * scaleX, polyminx)
-                        polymaxy = max((90 - point[0]) * scaleY, polymaxy)
-                        polyminy = min((90 - point[0]) * scaleY, polyminy)
-                    poly_coords += [point[1] * scaleX, (90 - point[0]) * scaleY]
-                c.create_polygon(poly_coords, fill=regcolor, outline='black')
-                if drawQuan:
-                    c.create_text((polyminx+polymaxx)/2, (polyminy+polymaxy)/2, text = str(regions[reg['name']]) if reg['name'] in regions else '')
-                    drawQuan = False
-        self.after(100, self.draw_map)
+                        c.create_text((polyminx+polymaxx)/2, (polyminy+polymaxy)/2, text = str(regions[reg['name']]) if reg['name'] in regions else '')
+                        drawQuan = False
+        if (loop):
+            self.after(400, self.draw_map)
 
     def update_users(self, users):
         self.users = users
