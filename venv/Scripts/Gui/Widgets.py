@@ -6,6 +6,15 @@ BUTTON_WIDTH = 244
 BUTTON_HEIGHT = 50
 PADDING = 10
 
+GRADIENT = [
+    '#444444',
+'#555555',
+'#666666',
+'#777777',
+'#888888',
+'#999999',
+]
+
 class NavBar(tk.Frame):
     def __init__(self, parent, w=400, h=50, backgroundcolor='#4978a6', onclicked=(), pages=[], textcolor='#cadef7',
                  choosedcolor="#44ff44", borderradius=18, fillcolor='#224b79', padding=10, button_width=100):
@@ -60,7 +69,7 @@ class NavBar(tk.Frame):
 class ScrollList(tk.Frame):
     def __init__(self, parent, w=BUTTON_WIDTH+2*PADDING, h=(BUTTON_HEIGHT+PADDING)*4+PADDING/2, backgroundcolor='#f1f0ec', onclicked=(), items=[], textcolor='#ffffff',
                  borderradius=18, fillcolor='#91b0cf', loadcolor = '#224b79', padding=PADDING, item_height = BUTTON_HEIGHT):
-        tk.Frame.__init__(self, parent)
+        tk.Frame.__init__(self, parent, bd = -2)
         self.w = w
         self.h = h
         self.textcolor = textcolor
@@ -89,7 +98,7 @@ class ScrollList(tk.Frame):
 
     def add(self, element):
         self.items.append(element)
-        self.buttons.append({'y1': None, 'text': element, 'font': "Colibri", 'fontsize': 25, 'progress': 0.0})
+        self.buttons.append({'y': None, 'text': element, 'font': "Colibri", 'fontsize': 25, 'progress': 0.0, 'fillcolor': self.fillcolor, 'particles': []})
         canvas = tk.Canvas(self)
         text = canvas.create_text(100, 100, text=element, font=(self.buttons[-1]['font'], self.buttons[-1]['fontsize']))
         box = canvas.bbox(text)
@@ -100,18 +109,38 @@ class ScrollList(tk.Frame):
         self.visibleheight = self.h - self.items.__len__() * (self.item_height + self.padding)
         self.initcanvas()
 
-    def remove(self, i = -1, button = None, name = ''):
+    def remove(self, i = -1, button = None, name = '', stage = 0):
         # print('removing  ', button['text'])
         if i > -1:
-            self.buttons.remove(i)
+            if stage == 0:
+                self.remove_animation(self.buttons[i])
+            else:
+                self.buttons.remove(i)
         elif button != None:
-            self.buttons.remove(button)
+            if stage == 0:
+                self.remove_animation(button)
+            else:
+                self.buttons.remove(button)
         else:
             for button in self.buttons:
                 if button['text'] == name:
-                    self.buttons.remove(button)
+                    if stage == 0:
+                        self.remove_animation(button)
+                    else:
+                        self.buttons.remove(button)
                     break
         self.initcanvas()
+
+    def remove_animation(self, button, stage = 0):
+        button['progress'] = 0
+        if stage < 10:
+            by = stage/10 * self.item_height
+            button['particles'] += [
+                [self.padding, by, self.w - self.padding, by + 10]
+            ]
+            self.after(100, lambda: self.remove_animation(button=button, stage=stage+1))
+        else:
+            self.remove(button=button, stage=1)
 
     def initcanvas(self):
         y = self.dy + self.padding
@@ -119,13 +148,18 @@ class ScrollList(tk.Frame):
         for i in range(self.buttons.__len__()):
             if y > self.h:
                 break
+
             round_rectangle(self.canvas, self.padding, y, self.w - self.padding, y + self.item_height,
-                                     radius=self.borderraadius, outline=self.fillcolor, fill=self.fillcolor)
+                                     radius=self.borderraadius, outline=self.buttons[i]['fillcolor'], fill=self.buttons[i]['fillcolor'])
             if self.buttons[i]['progress'] > 0:
                 print(self.buttons[i]['progress'])
                 round_rectangle(self.canvas, self.padding, y, (self.w - self.padding) * self.buttons[i]['progress'], y + self.item_height,
                                         radius=self.borderraadius, outline=self.loadcolor, fill=self.loadcolor)
             self.canvas.create_text(self.w / 2, y + self.item_height / 2, text=str(self.buttons[i]['text']), fill=self.textcolor, font=(self.buttons[i]['font'], self.buttons[i]['fontsize']))
+
+            for particle in self.buttons[i]['particles']:
+                self.canvas.create_rectangle(particle[0], particle[1], particle[2], particle[3], fill=self.backgroundcolor, outline=self.backgroundcolor)
+
             self.buttons[i]['y'] = y
             y += (self.item_height + self.padding)
 

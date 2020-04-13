@@ -9,6 +9,7 @@ class ChooseFilesPage(Page):
     filesToRead = []
     users = dict()
     image = None
+    loadedfiles = 0
 
     def __init__(self, parent, controller):
 
@@ -17,15 +18,23 @@ class ChooseFilesPage(Page):
         self.scrollList.grid(row = 0, column = 0)
         SimpleButton(self, onclicked= self.addFile).grid(row = 1, column = 0)
 
-        canvas = tk.Canvas(self, width=300, height=245, bg='#F0F0ED')
+        self.userscanvas = canvas = tk.Canvas(self, width=265, height=265, bg='#F0F0ED', bd=-2)
         canvas.grid(row = 0, column = 1)
-        self.image = tk.PhotoImage(file='Gui/user.png')
-        container = tk.Frame(self, bd=-2)
-        container.grid(row = 0, column = 1)
-        canvas.create_image(150, 150, image=self.image, anchor='center')
+        padding = 10
+        round_rectangle(canvas, padding, padding, 265 - padding, 265 - padding, radius=64, fill = '#91b0cf')
+        self.image = tk.PhotoImage(file='Gui/user140.png')
+        canvas.create_image(265/2, (265 - 2 * padding)*40/100 + padding, image=self.image, anchor='center')
+        self.userscountertext = canvas.create_text(265/2, padding + (265 - 2*padding)*85/100, text='12345678', font=('Colibri', 26), fill = '#ffffff')
 
-
-
+        w = 265
+        h = BUTTON_HEIGHT + 2*PADDING
+        self.filescanvas = canvas = tk.Canvas(self, width=w, height=h, bg='#F0F0ED')
+        canvas.grid(row=1, column=1)
+        self.filescountertext = canvas.create_text(w / 2, h/2,
+                                                   text='', font=('Colibri', 22), fill='#7389a1')
+        self.filescanvas.itemconfig(self.filescountertext, text=(
+                str(self.loadedfiles) + " files loaded"))
+        self.userscanvas.itemconfig(self.userscountertext, text=str(self.users.__len__()))
         self.update()
 
 
@@ -52,18 +61,28 @@ class ChooseFilesPage(Page):
             if addedFile:
                 self.filesToRead += [addedFile]
                 self.scrollList.add(addedFile.split('/')[-1])
+        self.filescanvas.itemconfig(self.filescountertext, text=(str(self.loadedfiles)+" of "+str(self.loadedfiles+self.filesToRead.__len__())+" loaded..."))
         self.loadFiles()
 
 
     def loadFiles(self):
         progress = 0
         if self.filesToRead.__len__() > 0:
-            step = 100 / self.filesToRead.__len__()
             for file in self.filesToRead:
                 self.loadFile(file)
-                progress += step
+                progress += 1
+                self.loadedfiles += 1
+                print(self.loadedfiles)
+                self.filescanvas.itemconfig(self.filescountertext, text=(
+                            str(progress) + " of " + str(self.filesToRead.__len__()) + " loaded..."))
+                self.update_users()
+                self.update()
+
                 # yield progress
-            self.controller.update_users(self.users)
+            self.filesToRead = []
+            self.filescanvas.itemconfig(self.filescountertext, text=(
+                    str(self.loadedfiles) + " files loaded"))
+
         # print('files loaded')
 
     def loadFile(self, file):
@@ -80,3 +99,7 @@ class ChooseFilesPage(Page):
                     self.users[user['id']] = [user]
             counter += 1
             self.scrollList.setProgress(name = filename, progress = counter/total)
+
+    def update_users(self):
+        self.userscanvas.itemconfig(self.userscountertext, text=str(self.users.__len__()))
+        self.controller.update_users(self.users)
