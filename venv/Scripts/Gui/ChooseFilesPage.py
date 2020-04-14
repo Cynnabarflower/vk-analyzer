@@ -1,11 +1,18 @@
 from Gui.Widgets import *
 from Gui.Page import *
+import Gui.Gui as Gui
 import tkinter as tk
 from tkinter import ttk
 import json
 
-
 class ChooseFilesPage(Page):
+
+    SCROLL_ITEM_HEIGHT = 105
+    SCROLL_ITEM_WIDTH = 245
+    SCROLL_ITEM_PADDING_X = 10
+    SCROLL_ITEM_PADDING_Y = 10
+    SCROLL_PADDING = 10
+
     filesToRead = []
     users = dict()
     image = None
@@ -14,13 +21,13 @@ class ChooseFilesPage(Page):
     def __init__(self, parent, controller):
 
         super().__init__(parent, controller)
-        self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n))
+        self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n), padding = 20, w= self.SCROLL_ITEM_WIDTH, h=SCROLL_ITEM_HEIGHT  )
         self.scrollList.grid(row = 0, column = 0)
         SimpleButton(self, onclicked= self.addFile).grid(row = 1, column = 0)
 
-        self.userscanvas = canvas = tk.Canvas(self, width=265, height=265, bg='#F0F0ED', bd=-2)
+        self.userscanvas = canvas = tk.Canvas(self, width=265, height=265, bg=Gui.background_color, bd=-2)
         canvas.grid(row = 0, column = 1)
-        padding = 10
+        padding = 20
         round_rectangle(canvas, padding, padding, 265 - padding, 265 - padding, radius=64, fill = '#91b0cf')
         self.image = tk.PhotoImage(file='Gui/user140.png')
         canvas.create_image(265/2, (265 - 2 * padding)*40/100 + padding, image=self.image, anchor='center')

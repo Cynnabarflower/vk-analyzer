@@ -2,9 +2,11 @@ from Gui.Widgets import *
 import tkinter as tk
 from tkinter import ttk
 from Gui.Page import *
+import Gui.Gui as Gui
 import threading
 import math
 import json
+
 
 class RegionalizePage(Page):
     users = dict()
@@ -34,6 +36,10 @@ class RegionalizePage(Page):
 
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.scrollList = ScrollList(self, onclicked=lambda n: self.show_page(n), items=['MOS', 'SPB'], w=170,
+                                     h=(20 + 10) * 10, item_height=20, bg=Gui.background_color, figurecolor='#91b0cf',
+                                     fillcolor='#91b0cf', item_padding = 5, padding = 10)
+        self.scrollList.grid(row=0, column=0, rowspan=2)
         self.regions_coordinates = json.load(open('allCoordinates.json', 'r'))
         for reg in self.regions_coordinates:
             for poly in reg['coordinates'][0]:
@@ -41,13 +47,14 @@ class RegionalizePage(Page):
                     t = point[0]
                     point[0] = point[1]
                     point[1] = t
-        c = tk.Canvas(self, width=800, height=400, bg='white', bd = -2)
-        c.grid(column=1, row=1)
+        c = tk.Canvas(self, width=360, height=245, bg='red', bd=-2)
+        c.grid(column=1, row=0)
         self.canvas = c
         self.draw_map()
 
-        self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize())
-        self.button1.grid(column=1, row=2)
+        self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize(), w=360,
+                                      h=120)
+        self.button1.grid(column=1, row=1)
 
     def draw_map(self, loop=True, draw_labels=False):
         if self.controller.page_number == 1:
@@ -79,8 +86,10 @@ class RegionalizePage(Page):
                     else:
                         regcolor = '#DDDDDD'
                     poly_coords = []
-                    scaleX = 4
+                    scaleX = 2
                     scaleY = scaleX * 5 / 3
+                    offX = -15
+                    offY = 85
                     polyminx = 9999
                     polymaxx = -99
                     polyminy = 9999
@@ -91,7 +100,7 @@ class RegionalizePage(Page):
                             polyminx = min(point[1] * scaleX, polyminx)
                             polymaxy = max((90 - point[0]) * scaleY, polymaxy)
                             polyminy = min((90 - point[0]) * scaleY, polyminy)
-                        poly_coords += [point[1] * scaleX, (90 - point[0]) * scaleY]
+                        poly_coords += [(offX + point[1]) * scaleX, (offY - point[0]) * scaleY]
                     c.create_polygon(poly_coords, fill=regcolor, outline='black')
                     if drawQuan and draw_labels:
                         c.create_text((polyminx + polymaxx) / 2, (polyminy + polymaxy) / 2,
@@ -147,4 +156,3 @@ class RegionalizePage(Page):
             self.regionalizeProgress[0] += b - a
             print(a, '-', b, ' ', self.regions.__len__(), ':  ', self.regions)
             print('not found: ', not_found.__len__())
-

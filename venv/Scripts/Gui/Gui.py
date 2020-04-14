@@ -4,12 +4,13 @@ from Gui.RegionalizePage import *
 import tkinter as tk
 from tkinter import ttk
 
+background_color = '#F0F0ED'
+
 class Gui(tk.Tk):
     tempdir = ''
     page = ''
     pages = []
-    page_number = 0
-    background_color = '#F0F0ED'  # 240 240 237
+    page_number = 0  # 240 240 237
 
     def show(self, page):
         page.tkraise()
@@ -53,12 +54,12 @@ class Gui(tk.Tk):
             self.note.add(frame)
             self.pages.append(frame)
             # frame.grid(row=0, column=1, sticky="nsew")
-            frame.configure(background=self.background_color)
+            frame.configure(background=background_color)
 
         nb = NavBar(self.container, pages=['1', '2', '3'], onclicked= lambda n: self.show_page(n))
         nb.pack(fill = 'both', padx = 0, pady = 0, side='top', expand=False)
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
-        self.show_page(0)
+        self.show_page(1)
 
     def show_page(self, page_number):
         self.page_number = page_number
