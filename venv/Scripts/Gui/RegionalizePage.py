@@ -6,9 +6,23 @@ import Gui.Gui as Gui
 import threading
 import math
 import json
+from threading import Thread
+from multiprocessing import Queue
 
 
 class RegionalizePage(Page):
+
+    SCROLL_ITEM_HEIGHT = 25
+    SCROLL_ITEM_WIDTH = 170
+    SCROLL_ITEM_PADDING_X = 10
+    SCROLL_ITEM_PADDING_Y = 7
+    SCROLL_PADDING = 20
+    SCROLL_WIDTH = SCROLL_ITEM_WIDTH + 2 * SCROLL_ITEM_PADDING_X
+    SCROLL_HEIGHT = (SCROLL_ITEM_HEIGHT + SCROLL_ITEM_PADDING_Y) * 10 + 2*SCROLL_PADDING
+    WINDOW_WIDTH = 530
+    WINDOW_HEIGHT = 350
+
+
     users = dict()
     regions = {}
     regions_lock = threading.Lock()
@@ -36,28 +50,30 @@ class RegionalizePage(Page):
 
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
-        self.scrollList = ScrollList(self, onclicked=lambda n: self.show_page(n), items=['MOS', 'SPB'], w=170,
-                                     h=(20 + 10) * 10, item_height=20, bg=Gui.background_color, figurecolor='#91b0cf',
-                                     fillcolor='#91b0cf', item_padding = 5, padding = 10)
+        self.scrollList = ScrollList(self, onclicked=lambda n: self.show_page(n), w=self.SCROLL_WIDTH,
+                                     h=self.SCROLL_HEIGHT, item_height=self.SCROLL_ITEM_HEIGHT, bg=Gui.background_color, figurecolor='#91b0cf',
+                                     fillcolor=None, item_padding = self.SCROLL_ITEM_PADDING_Y, padding = self.SCROLL_PADDING, progress_offset = 5)
         self.scrollList.grid(row=0, column=0, rowspan=2)
         self.regions_coordinates = json.load(open('allCoordinates.json', 'r'))
         for reg in self.regions_coordinates:
+            self.scrollList.add(reg['name'].replace('RU-', ''))
             for poly in reg['coordinates'][0]:
                 for point in poly:
                     t = point[0]
                     point[0] = point[1]
                     point[1] = t
-        c = tk.Canvas(self, width=360, height=245, bg='red', bd=-2)
+        self.scrollList.sort(reverse=False, key=lambda item: item.value)
+        c = tk.Canvas(self, width=360, height=245, bd=-2)
         c.grid(column=1, row=0)
         self.canvas = c
         self.draw_map()
 
         self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize(), w=360,
-                                      h=120)
+                                      h=105)
         self.button1.grid(column=1, row=1)
 
-    def draw_map(self, loop=True, draw_labels=False):
-        if self.controller.page_number == 1:
+    def draw_map(self, loop=False, draw_labels=False):
+        if self.controller.page_number == 1 or True:
             c = self.canvas
             c.delete('all')
             coords = self.regions_coordinates
@@ -66,9 +82,17 @@ class RegionalizePage(Page):
             with self.regions_lock:
                 regions = self.regions.copy()
 
+
             for reg in regions:
                 minreg = min(minreg, self.regions[reg])
                 maxreg = max(maxreg, self.regions[reg])
+
+
+            if regions.__len__() > 0:
+                for reg in regions:
+                    self.scrollList.setProgress(name = reg.replace('RU-', ''), progress=self.regions[reg]/maxreg * 0.9, text=' '+str(self.regions[reg]))
+                self.scrollList.sort()
+
 
             for reg in coords:
                 drawQuan = True
@@ -112,11 +136,19 @@ class RegionalizePage(Page):
     def update_users(self, users):
         self.users = users
 
+    def watch_progress(self):
+        progress = self.regionalizeProgress[0] / self.regionalizeProgress[1]
+        self.button1.drawProgress(progress)
+        if progress < 1:
+            self.draw_map(loop=False)
+            self.after(500, self.watch_progress)
+
+
     def regionalize(self):
         self.regions = {}
         u_len = self.users.__len__()
         self.regionalizeProgress = [0, u_len]
-        self.button1.watch_progress(self.regionalizeProgress)
+        self.watch_progress()
         users_list = list(self.users.values())
         i = 0
         cities = json.load(open('citiesMap.json', 'r'))
@@ -124,15 +156,17 @@ class RegionalizePage(Page):
         cities['2'] = {'region': 'RU-LEN'}
 
         threads = []
-        step = min(5000, round(u_len))
+        step = min(50000, round(u_len))
+        q = Queue()
         while i < u_len:
             threads.append(
-                Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i]), daemon=True))
+                Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i, q]), daemon=True))
             i += min(u_len, step)
+
         for th in threads:
             th.start()
 
-    def __reg(self, users_list, cities, a, b, name):
+    def __reg(self, users_list, cities, a, b, name,):
         not_found = {}
         regs = {}
         for i in range(a, b):
@@ -146,7 +180,6 @@ class RegionalizePage(Page):
                         regs[reg] = 1
                 else:
                     not_found[city_id] = ''
-        time.sleep(random.randint(1, 10) * 0.5)
         with self.regions_lock:
             for reg in regs:
                 if reg in self.regions:

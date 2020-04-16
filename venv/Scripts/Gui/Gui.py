@@ -1,6 +1,7 @@
 from Gui.ChooseFilesPage import *
 from Gui.Page import *
 from Gui.RegionalizePage import *
+from Gui.AnalyzerPage import *
 import tkinter as tk
 from tkinter import ttk
 
@@ -49,14 +50,14 @@ class Gui(tk.Tk):
         self.container.pack(expand=0, padx=0, pady=0)
 
         self.note = ttk.Notebook(self.container, padding=0)
-        for F in (ChooseFilesPage, RegionalizePage):
+        for F in (ChooseFilesPage, RegionalizePage, AnalyzerPage):
             frame = F(parent=self.note, controller=self)
             self.note.add(frame)
             self.pages.append(frame)
             # frame.grid(row=0, column=1, sticky="nsew")
             frame.configure(background=background_color)
 
-        nb = NavBar(self.container, pages=['1', '2', '3'], onclicked= lambda n: self.show_page(n))
+        nb = NavBar(self.container, pages=['Loader', 'Regionalizer', 'Analyzer'], onclicked= lambda n: self.show_page(n))
         nb.pack(fill = 'both', padx = 0, pady = 0, side='top', expand=False)
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
         self.show_page(1)

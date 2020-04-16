@@ -4,14 +4,20 @@ import Gui.Gui as Gui
 import tkinter as tk
 from tkinter import ttk
 import json
+from multiprocessing import Queue
+from threading import Thread
 
 class ChooseFilesPage(Page):
 
-    SCROLL_ITEM_HEIGHT = 105
+    SCROLL_ITEM_HEIGHT = 50
     SCROLL_ITEM_WIDTH = 245
     SCROLL_ITEM_PADDING_X = 10
     SCROLL_ITEM_PADDING_Y = 10
-    SCROLL_PADDING = 10
+    SCROLL_PADDING = 20
+    SCROLL_WIDTH = SCROLL_ITEM_WIDTH + 2 * SCROLL_ITEM_PADDING_X
+    SCROLL_HEIGHT = (SCROLL_ITEM_HEIGHT + SCROLL_ITEM_PADDING_Y) * 4 + 2*SCROLL_PADDING
+    WINDOW_WIDTH = 530
+    WINDOW_HEIGHT = 350
 
     filesToRead = []
     users = dict()
@@ -21,7 +27,7 @@ class ChooseFilesPage(Page):
     def __init__(self, parent, controller):
 
         super().__init__(parent, controller)
-        self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n), padding = 20, w= self.SCROLL_ITEM_WIDTH, h=SCROLL_ITEM_HEIGHT  )
+        self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n), item_height=self.SCROLL_ITEM_HEIGHT, item_padding=self.SCROLL_ITEM_PADDING_Y, padding =(self.SCROLL_PADDING), w= self.SCROLL_WIDTH, h=self.SCROLL_HEIGHT)
         self.scrollList.grid(row = 0, column = 0)
         SimpleButton(self, onclicked= self.addFile).grid(row = 1, column = 0)
 
@@ -38,7 +44,7 @@ class ChooseFilesPage(Page):
         self.filescanvas = canvas = tk.Canvas(self, width=w, height=h, bg='#F0F0ED')
         canvas.grid(row=1, column=1)
         self.filescountertext = canvas.create_text(w / 2, h/2,
-                                                   text='', font=('Colibri', 22), fill='#7389a1')
+                                                   text='', font=('Colibri', 22), fill='#91b0cf')
         self.filescanvas.itemconfig(self.filescountertext, text=(
                 str(self.loadedfiles) + " files loaded"))
         self.userscanvas.itemconfig(self.userscountertext, text=str(self.users.__len__()))
@@ -69,30 +75,42 @@ class ChooseFilesPage(Page):
                 self.filesToRead += [addedFile]
                 self.scrollList.add(addedFile.split('/')[-1])
         self.filescanvas.itemconfig(self.filescountertext, text=(str(self.loadedfiles)+" of "+str(self.loadedfiles+self.filesToRead.__len__())+" loaded..."))
-        self.loadFiles()
+        self.load_files_launch()
 
+    def load_files_launch(self):
+        q = Queue()
+        Thread(target=self.loadFiles, args=[q], daemon=True).start()
+        current_filename = ''
+        while self.loadedfiles < self.filesToRead.__len__():
+            rep = q.get()
+            if rep.__len__() == 2:
+                filename = rep[0]
+                progress = rep[1]
+                self.scrollList.setProgress(name=filename, progress=progress)
+            else:
+                self.loadedfiles = rep[0]
+                self.update_users()
+                self.filescanvas.itemconfig(self.filescountertext, text=(
+                        str(self.loadedfiles) + " of " + str(self.filesToRead.__len__()) + " loaded..."))
+                self.update()
+        self.filesToRead = []
+        self.filescanvas.itemconfig(self.filescountertext, text=(
+                str(self.loadedfiles) + " files loaded"))
 
-    def loadFiles(self):
+    def loadFiles(self, q):
         progress = 0
         if self.filesToRead.__len__() > 0:
             for file in self.filesToRead:
-                self.loadFile(file)
+                q.put([file, 0])
+                self.loadFile(file, q)
                 progress += 1
-                self.loadedfiles += 1
-                print(self.loadedfiles)
-                self.filescanvas.itemconfig(self.filescountertext, text=(
-                            str(progress) + " of " + str(self.filesToRead.__len__()) + " loaded..."))
-                self.update_users()
-                self.update()
-
+                q.put([progress])
                 # yield progress
-            self.filesToRead = []
-            self.filescanvas.itemconfig(self.filescountertext, text=(
-                    str(self.loadedfiles) + " files loaded"))
+
 
         # print('files loaded')
 
-    def loadFile(self, file):
+    def loadFile(self, file, q):
         f = open(file, 'r')
         filename = file.split('/')[-1]
         counter = 0
@@ -105,7 +123,8 @@ class ChooseFilesPage(Page):
                 else:
                     self.users[user['id']] = [user]
             counter += 1
-            self.scrollList.setProgress(name = filename, progress = counter/total)
+            q.put((filename, counter/total))
+        self.after(100, lambda: self.scrollList.remove(name = filename))
 
     def update_users(self):
         self.userscanvas.itemconfig(self.userscountertext, text=str(self.users.__len__()))
