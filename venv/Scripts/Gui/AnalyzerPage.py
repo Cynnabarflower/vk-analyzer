@@ -59,6 +59,9 @@ class AnalyzerPage(Page):
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
         self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
 
+    def resize(self, w, h, aw, ah):
+        print('')
+
     class _Page1:
         def __init__(self, frame):
             self.textCanvas = tk.Canvas(frame, width=550, height=45, bg=Gui.background_color, bd=-2)

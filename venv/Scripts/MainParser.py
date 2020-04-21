@@ -742,7 +742,7 @@ class VkLoader:
 
 
 
-        def tkMenu(self):
+    def tkMenu(self):
             """
             Provides graphic interface
             """
@@ -763,8 +763,6 @@ class VkLoader:
             root = Tk()
             root.geometry("500x400")
 
-            def load_by_id():
-                
 
             def loadMainMenu():
                 """
@@ -909,7 +907,7 @@ class VkLoader:
             auth_menu()
             root.mainloop()
 
-    VkLoader().tkMenu()
+VkLoader().tkMenu()
     # makeFullLoad()
     # auth()
     # getOnline()

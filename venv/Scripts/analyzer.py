@@ -63,7 +63,7 @@ def getData(dir):
                         series.name = str(userInfo['id'])
                         data_frame = data_frame.append(series)
                         if 'city' in userInfo:
-                            data_frame.at[str(userIЦnfo['id']), 'city_name'] = userInfo['city']['title']
+                            data_frame.at[str(userInfo['id']), 'city_name'] = userInfo['city']['title']
                         if os.path.exists(userFolderName + '/info.txt'):
                             # userPhotos = json.load(open(userFolderName + '/photos.txt'))
                             data_frame.at[str(userInfo['id']), 'photos'] = 'userPhotos'

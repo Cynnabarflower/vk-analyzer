@@ -35,7 +35,7 @@ class NavBar(tk.Frame):
         self.button_width = button_width
         c = tk.Canvas(self, width=w, height=h, bg=backgroundcolor, bd=-2)
         c.bind("<Button-1>", self.clicked)
-        c.pack()
+        c.pack(expand=True, fill=tk.X)
         self.canvas = c
         self.updatecanvas()
 
@@ -90,6 +90,7 @@ class ScrollList(tk.Frame):
         self.item_height = item_height
         self.item_width = item_width or self.w - self.padding[1] - self.padding[3]
         self.item_padding = item_padding
+        self.scale = (1, 1)
         c = tk.Canvas(self, width=w, height=h, bg=bg, bd=-2)
         c.bind("<Button-1>", self.pointerdown)
         c.bind("<B1-Motion>", self.moved)
@@ -160,27 +161,33 @@ class ScrollList(tk.Frame):
         button.progress = 0
         self.remove(button=button)
 
-    def initcanvas(self):
+    def resize(self, w, h):
+        self.canvas.configure(width=self.w * w, height=self.h * h)
+        self.scale = (w, h)
+        self.canvas.delete('all')
+        self.initcanvas()
+        # self.updatecanvas()
 
+    def initcanvas(self):
         if not self.figurecolor is None:
-            round_rectangle(self.canvas, self.padding[3], self.padding[0], self.w - self.padding[1],
-                            self.h - self.padding[2], radius=32, fill=self.figurecolor)
+            round_rectangle(self.canvas, self.padding[3], self.padding[0], self.w * self.scale[0] - self.padding[1],
+                            self.h * self.scale[1] - self.padding[2], radius=32, fill=self.figurecolor)
         y = self.dy + self.item_padding + self.padding[0]
         for button in self.buttons:
             self.draw_new(button, y)
             y += (self.item_height + self.item_padding)
-
-        self.canvas.create_rectangle(self.padding[3], 0, self.w - self.padding[1], self.padding[0],
+        self.canvas.create_rectangle(self.padding[3], 0, self.w * self.scale[0] - self.padding[1], self.padding[0],
                                      outline=self.backgroundcolor,
                                      fill=self.backgroundcolor, tag='frame')
-        self.canvas.create_rectangle(0, self.h - self.padding[2], self.w, self.h, outline=self.backgroundcolor,
+        self.canvas.create_rectangle(0, self.h * self.scale[1] - self.padding[2], self.w * self.scale[0],
+                                     self.h * self.scale[1], outline=self.backgroundcolor,
                                      fill=self.backgroundcolor, tag='frame')
 
     def updatecanvas(self):
         y = self.dy + self.item_padding + self.padding[0]
         for button in self.buttons:
             if not button.needsupdate:
-                if y > self.h and button.y > y and button.old_y > y:
+                if y > self.h * self.scale[1] and button.y > y and button.old_y > y:
                     continue
                 if y != button.y:
                     self.canvas.move(button.tag, 0, y - button.y)
@@ -202,22 +209,25 @@ class ScrollList(tk.Frame):
         self.update()
 
     def draw_new(self, button, y):
-        print('new!')
-        x0 = self.padding[3] + (self.w - self.padding[1] - self.padding[3] - self.item_width) / 2
-        x1 = x0 + self.item_width
+
+        x0 = self.padding[3] + (
+                    self.w * self.scale[0] - self.padding[1] - self.padding[3] - self.item_width * self.scale[0]) / 2
+        x1 = x0 + self.item_width * self.scale[0]
         if self.fillcolor is not None:
             round_rectangle(self.canvas, x0, y, x1, y + self.item_height,
                             radius=self.borderraadius, outline=button.fillcolor,
                             fill=button.fillcolor, tag=button.tag)
         if button.progress > 0.02:
-            round_rectangle(self.canvas, x0 + self.progress_offset, y,
-                            (self.item_width - self.progress_offset) * button.progress + x0 + self.progress_offset,
+            round_rectangle(self.canvas, x0 + self.progress_offset * self.scale[0], y,
+                            ((self.item_width - self.progress_offset) * button.progress + self.progress_offset) *
+                            self.scale[0] + x0,
                             y + self.item_height,
                             radius=self.borderraadius, outline=self.loadcolor, fill=self.loadcolor,
                             tag=button.tag + 'progress')
         elif button.progress > 0:
-            self.canvas.create_rectangle(x0 + self.progress_offset, y, (
-                        self.item_width - self.progress_offset) * button.progress + x0 + self.progress_offset,
+            self.canvas.create_rectangle(x0 + self.progress_offset, y, ((
+                                                                                self.item_width - self.progress_offset) * button.progress + self.progress_offset) *
+                                         self.scale[0] + x0,
                                          y + self.item_height, outline=self.loadcolor, fill=self.loadcolor,
                                          tag=button.tag + 'progress')
         self.canvas.create_text((x1 + x0) / 2, y + self.item_height / 2, text=str(button.text),
@@ -350,10 +360,35 @@ class ProgressButton(tk.Frame):
         self.onclicked = onclicked
         self.borderradius = borderradius
         self.padding = padding
+        self.scale = (1, 1)
         c = tk.Canvas(self, width=w, height=h, bg=backgroundcolor)
         c.bind("<Button-1>", self.clicked)
         c.pack()
         self.canvas = c
+        self.updatecanvas()
+
+    def fit_text(self):
+        canvas = tk.Canvas(self)
+        text = canvas.create_text(100, 100, text=self.text, font=self.font)
+        box = canvas.bbox(text)
+        while (box[2] - box[0] > (self.w - self.padding) * 0.8 * self.scale[0] - 2 or (box[3] - box[1]) > (
+                self.h - self.padding) * 0.8 * self.scale[1] - 2):
+            self.font = (self.font[0], self.font[1] - 1)
+            text = canvas.create_text(100, 100, text=self.text,
+                                      font=self.font)
+            box = canvas.bbox(text)
+        while ((box[2] - box[0] < (self.w - self.padding) * 0.8 * self.scale[0] and box[3] - box[1] < (
+                self.h - self.padding) * 0.8 * self.scale[1]) and self.font[1] < 30):
+            self.font = (self.font[0], self.font[1] + 1)
+            text = canvas.create_text(100, 100, text=self.text,
+                                      font=self.font)
+            box = canvas.bbox(text)
+
+    def resize(self, w, h):
+        self.scale = (w, h)
+        self.canvas.configure(height=self.h * h, width=self.w * w)
+        self.fit_text()
+        self.canvas.delete('all')
         self.updatecanvas()
 
     def clicked(self, e):
@@ -370,25 +405,30 @@ class ProgressButton(tk.Frame):
     def updatecanvas(self):
         self.canvas.delete('text')
         self.canvas.delete('progress')
-        round_rectangle(self.canvas, self.padding, self.padding, self.w - self.padding, self.h - self.padding,
-                        radius=self.borderradius, outline=self.fillcolor, fill=self.fillcolor)
+        round_rectangle(self.canvas, self.padding * self.scale[0], self.padding * self.scale[1],
+                        (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1],
+                        radius=self.borderradius * self.scale[0], outline=self.fillcolor, fill=self.fillcolor)
         # self.canvas.create_rectangle(0, 0, prorgess / 100 * self.w, self.h, outline=self.backgroundcolor, fill=self.backgroundcolor)
-        self.canvas.create_text(self.w / 2, self.h / 2, text=self.text, fill=self.textcolor, font=self.font, tag='text')
+        self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
+                                fill=self.textcolor, font=self.font, tag='text')
 
     def drawProgress(self, prorgess):
         self.canvas.delete('text')
         self.canvas.delete('progress')
         if prorgess > 0:
-            round_rectangle(self.canvas, self.padding, self.padding,
-                            (self.w - self.padding * 2) * prorgess + self.padding,
-                            self.h - self.padding,
-                            radius=self.borderradius, outline=self.loadcolor, fill=self.loadcolor, tag='progress')
+            round_rectangle(self.canvas, self.padding * self.scale[0], self.padding * self.scale[1],
+                            ((self.w - self.padding * 2) * prorgess + self.padding) * self.scale[0],
+                            (self.h - self.padding) * self.scale[1],
+                            radius=self.borderradius * self.scale[0], outline=self.loadcolor, fill=self.loadcolor,
+                            tag='progress')
         if prorgess < 1:
-            self.canvas.create_text(self.w / 2, self.h / 2, text=str(math.floor(prorgess * 100)) + '%',
+            self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2,
+                                    text=str(math.floor(prorgess * 100)) + '%',
                                     fill=self.textcolor,
                                     tag='text', font=self.font)
         else:
-            self.canvas.create_text(self.w / 2, self.h / 2, text=str('done!'), fill=self.textcolor, tag='text',
+            self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=str('done!'),
+                                    fill=self.textcolor, tag='text',
                                     font=self.font)
             self.after(1000, self.updatecanvas)
         self.update()
@@ -403,12 +443,13 @@ class ProgressButton(tk.Frame):
 class SimpleButton(tk.Frame):
 
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=BUTTON_HEIGHT + 2 * PADDING, backgroundcolor='#f1f0ec',
-                 onclicked=None, text='+', textcolor='#ffffff',
+                 onclicked=None, text='+', icon=None, textcolor='#ffffff',
                  fillcolor="#4978a6", loadcolor='#224b79', borderradius=18, padding=10, font=("Colibri", 25),
                  fixed=False):
         tk.Frame.__init__(self, parent)
         self.w = w
         self.h = h
+        self.scale = (1, 1)
         self.text = text
         self.font = font
         self.textcolor = textcolor
@@ -420,10 +461,35 @@ class SimpleButton(tk.Frame):
         self.padding = padding
         self.fixed = fixed
         self.state = False
+        self.icon = icon
         c = tk.Canvas(self, width=w, height=h, bg=backgroundcolor, bd=-2)
         c.bind("<Button-1>", self.clicked)
         c.pack()
         self.canvas = c
+        self.fit_text()
+        self.updatecanvas(self.fillcolor)
+
+    def fit_text(self):
+        canvas = tk.Canvas(self)
+        text = canvas.create_text(100, 100, text=self.text, font=self.font)
+        box = canvas.bbox(text)
+        while (box[2] - box[0] > (self.w - self.padding) * 0.8 * self.scale[0] - 2 or (box[3] - box[1]) > (
+                self.h - self.padding) * 0.8 * self.scale[1] - 2):
+            self.font = (self.font[0], self.font[1] - 1)
+            text = canvas.create_text(100, 100, text=self.text,
+                                      font=self.font)
+            box = canvas.bbox(text)
+        while ((box[2] - box[0] < (self.w - self.padding) * 0.8 * self.scale[0] and box[3] - box[1] < (
+                self.h - self.padding) * 0.8 * self.scale[1]) and self.font[1] < 30):
+            self.font = (self.font[0], self.font[1] + 1)
+            text = canvas.create_text(100, 100, text=self.text,
+                                      font=self.font)
+            box = canvas.bbox(text)
+
+    def resize(self, w, h):
+        self.scale = (w, h)
+        self.canvas.configure(height=self.h * h, width=self.w * w)
+        self.fit_text()
         self.updatecanvas(self.fillcolor)
 
     def clicked(self, e):
@@ -440,9 +506,18 @@ class SimpleButton(tk.Frame):
     def updatecanvas(self, color=None):
         self.canvas.delete('all')
         color = self.fillcolor if color is None else color
-        round_rectangle(self.canvas, self.padding, self.padding, self.w - self.padding, self.h - self.padding,
+        round_rectangle(self.canvas, self.padding * self.scale[0], self.padding * self.scale[1],
+                        (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1],
                         radius=self.borderradius, outline=color, fill=color)
-        self.canvas.create_text(self.w / 2, self.h / 2, text=self.text, fill=self.textcolor, font=self.font)
+        if self.icon is not None:
+            if self.text == '':
+                self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
+                                    anchor='center')
+            else:
+                self.canvas.create_image(self.w * self.scale[0] / 5, self.h * self.scale[1] / 2, image=self.icon,
+                                    anchor='center')
+        self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
+                                fill=self.textcolor, font=self.font)
 
 
 def round_rectangle(canvas, x1, y1, x2, y2, radius=25, radius1=None, radius2=None, radius3=None, radius4=None,
@@ -483,39 +558,66 @@ def round_rectangle_points(x1, y1, x2, y2, radius=25, radius1=None, radius2=None
     return points
 
 
-class RuMap(tk.Frame):
+class Row(tk.Frame):
+    def __init__(self, parent, align):
+        tk.Frame.__init__(self, parent)
+        self.widgets = []
+        self.align = align
 
-    def __init__(self, parent, coords = None, hower_callback = lambda n: () , w=360, h=245, scaleX = 2):
+    def add(self, *widgets):
+        self.widgets += widgets
+        for widget in widgets:
+            widget.pack(side='left', anchor=self.align)
+
+    def resize(self, w, h):
+        for widget in self.widgets:
+            widget.resize(w, h)
+
+
+class Note(tk.Frame):
+    def __init__(self, parent):
+        tk.Frame.__init__(self, parent)
+        self.pages = []
+        self.current = None
+
+    def add(self, *widgets):
+        self.pages += widgets
+        # for w in widgets:
+        #      # w.grid(column = 0, row = 0)
+
+    def select(self, page):
+        # self.pages[page].tkraise()
+        if self.current is not None:
+            self.current.forget()
+        self.current = self.pages[page]
+        self.current.propagate(0)
+        self.current.pack(expand=tk.YES, fill=tk.BOTH, padx=0, pady=0, side='top')
+        self.current.propagate(0)
+
+
+class RuMap(tk.Frame):
+    def __init__(self, parent, coords=None, hower_callback=lambda n: (), w=360, h=155, scaleX=2):
         tk.Frame.__init__(self, parent)
         self.scaleX = scaleX
         self.coords = coords
+        self.width = w
+        self.height = h
+        self.last_scale = 1
         self.hover_region_tag = ''
         self.hower_callback = hower_callback
-        c = tk.Canvas(self, width=w, height=h, bd=-2)
+        c = tk.Canvas(self, width=w, height=h, bd=-2, bg='#F0F0ED')
         c.pack()
         c.bind("<Motion>", self.map_hover)
-        c.bind("<Button-1>", self.map_clicked)
         self.canvas = c
         self.draw_map(c)
 
-    def map_clicked(self, details):
-        ids = self.canvas.find_overlapping(details.x, details.y, details.x, details.y)
-        if ids.__len__() != 1:
-            return
-        tag = self.canvas.gettags(ids[0])[0]
-        print(tag)
-        from threading import Thread
-        if tag == 'open_new':
-            Thread(target=self.open_new, args=([]), daemon=True).start()
-
-    def open_new(self):
-        app = tk.Tk()
-        w = 360 * 2
-        h = 245 * 2
-        app.geometry(str(w)+'x'+str(h))
-        c = RuMap(app, coords=self.coords, w = w, h = h, scaleX=4)
-        c.pack()
-        app.mainloop()
+    def resize(self, w, h):
+        self.canvas.configure(width=w * self.width, height=h * self.height)
+        current_scale = min(w, h) / self.last_scale
+        self.canvas.scale('all', 0, 0, current_scale, current_scale)
+        self.last_scale = min(w, h)
+        # self.draw_map(self.canvas, scale=self.scaleX * min(w,h))
+        # resize(self.canvas, w, h)
 
     def map_hover(self, details, updateScrollList=True):
         reg = self.canvas.find_overlapping(details.x, details.y, details.x, details.y)
@@ -542,46 +644,56 @@ class RuMap(tk.Frame):
             self.canvas.move(self.hover_region_tag + '_shadow', -1, -1)
             self.hover_region_tag = ''
 
-    def update_colors(self, regions):
+    def update_colors(self, regions, color_gradient):
         self.minreg = 999999
         self.maxreg = -99
 
         for reg in regions:
-            self.minreg = min(self.minreg, self.regions[reg])
-            self.maxreg = max(self.maxreg, self.regions[reg])
+            self.minreg = min(self.minreg, regions[reg])
+            self.maxreg = max(self.maxreg, regions[reg])
 
-        if regions.__len__() > 0:
-            for reg in regions:
-                self.scrollList.setProgress(name=reg.replace('RU-', ''), progress=self.regions[reg] / self.maxreg * 0.9,
-                                            text=' ' + str(self.regions[reg]))
-            self.scrollList.sort()
-        coords = self.regions_coordinates
-        for reg in coords:
+        # if regions.__len__() > 0:
+        #     for reg in regions:
+        #         self.scrollList.setProgress(name=reg.replace('RU-', ''), progress=self.regions[reg] / self.maxreg * 0.9,
+        #                                     text=' ' + str(self.regions[reg]))
+        #     self.scrollList.sort()
+        for reg in self.coords:
             if reg['name'] in regions:
                 try:
-                    regcolor = self.color_gradient[round((regions[reg['name']] - self.minreg) / (self.maxreg - self.minreg) * (
-                            self.color_gradient.__len__() - 1))]
+                    regcolor = color_gradient[
+                        round((regions[reg['name']] - self.minreg) / (self.maxreg - self.minreg) * (
+                                color_gradient.__len__() - 1))]
                 except Exception as e:
                     regcolor = '#DDDDDD'
                     print(self.minreg, ' ', self.maxreg, ' ', regions[reg['name']], ' ', round(
                         (regions[reg['name']] - self.minreg) / (self.maxreg - self.minreg) * (
-                                self.color_gradient.__len__() - 1)))
+                                color_gradient.__len__() - 1)))
 
             else:
                 regcolor = '#DDDDDD'
             self.canvas.itemconfigure(reg['name'], fill=regcolor)
 
-    def draw_map(self, c):
+    def draw_map(self, c, scale=-1):
+        scale = scale if scale > 0 else self.scaleX
         c.delete('all')
         for reg in self.coords:
             for poly in reg['coordinates'][0]:
                 poly_coords = []
-                scaleY = self.scaleX * 5 / 3
+                scaleY = scale * 5 / 3
                 offX = -15
                 offY = 85
                 for point in poly:
-                    poly_coords += [(offX + point[1]) * self.scaleX, (offY - point[0]) * scaleY]
+                    poly_coords += [(offX + point[1]) * scale, (offY - point[0]) * scaleY]
                 c.create_polygon(poly_coords, fill='black', outline='black', tag=reg['name'] + '_shadow')
-                c.create_polygon(poly_coords, fill='grey', outline='black', tag=reg['name'])
-        self.canvas.create_oval(300, 190, 350, 240, outline="gray",
-                                fill="gray", width=2, tag='open_new')
+                c.create_polygon(poly_coords, fill='#DDDDDD', outline='black', tag=reg['name'])
+
+
+def resize(canvas, wscale, hscale):
+    print('resize ', wscale, '  ', hscale)
+    # wscale = float(event.width)/self.width
+    # hscale = float(event.height)/self.height
+    scale = min(wscale, hscale)
+    # self.width = self.width* scale
+    # self.height = self.height * scale
+    # canvas.config(width=self.width, height=self.height)
+    canvas.scale("all", 0, 0, scale, scale)

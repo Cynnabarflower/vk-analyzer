@@ -15,9 +15,9 @@ class ChooseFilesPage(Page):
     SCROLL_ITEM_PADDING_Y = 10
     SCROLL_PADDING = 20
     SCROLL_WIDTH = SCROLL_ITEM_WIDTH + 2 * SCROLL_ITEM_PADDING_X
-    SCROLL_HEIGHT = (SCROLL_ITEM_HEIGHT + SCROLL_ITEM_PADDING_Y) * 4 + 2*SCROLL_PADDING
+    SCROLL_HEIGHT = (SCROLL_ITEM_HEIGHT + SCROLL_ITEM_PADDING_Y) * 4
     WINDOW_WIDTH = 530
-    WINDOW_HEIGHT = 350
+    WINDOW_HEIGHT = 360
 
     filesToRead = []
     users = dict()
@@ -25,20 +25,20 @@ class ChooseFilesPage(Page):
     loadedfiles = 0
 
     def __init__(self, parent, controller):
-
         super().__init__(parent, controller)
         self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n), item_height=self.SCROLL_ITEM_HEIGHT, item_padding=self.SCROLL_ITEM_PADDING_Y, padding =(self.SCROLL_PADDING), w= self.SCROLL_WIDTH, h=self.SCROLL_HEIGHT)
         self.scrollList.grid(row = 0, column = 0)
-        SimpleButton(self, onclicked= self.addFile).grid(row = 1, column = 0)
+        self.add_button = SimpleButton(self, onclicked= self.addFile)
+        self.add_button.grid(row = 1, column = 0)
 
-        self.userscanvas = canvas = tk.Canvas(self, width=265, height=265, bg=Gui.background_color, bd=-2)
+        self.userscanvas = canvas = tk.Canvas(self, width=285, height=265, bg=Gui.background_color, bd=-2)
         canvas.grid(row = 0, column = 1)
         padding = 20
         round_rectangle(canvas, padding, padding, 265 - padding, 265 - padding, radius=64, fill = '#91b0cf')
         self.image = tk.PhotoImage(file='Gui/user140.png')
         canvas.create_image(265/2, (265 - 2 * padding)*40/100 + padding, image=self.image, anchor='center')
         self.userscountertext = canvas.create_text(265/2, padding + (265 - 2*padding)*85/100, text='12345678', font=('Colibri', 26), fill = '#ffffff')
-
+        self.last_scale = (1,1)
         w = 265
         h = BUTTON_HEIGHT + 2*PADDING
         self.filescanvas = canvas = tk.Canvas(self, width=w, height=h, bg='#F0F0ED')
@@ -51,6 +51,15 @@ class ChooseFilesPage(Page):
         self.update()
 
 
+    def resize(self, w, h, aw, ah):
+        self.add_button.resize(aw, ah)
+        self.scrollList.resize(aw, ah)
+        self.userscanvas.configure(width=aw * 285, height=ah * 265)
+        self.filescanvas.configure(width=aw * 265, height=ah * (BUTTON_HEIGHT + 2*PADDING))
+        current_scale = (aw / self.last_scale[0], ah / self.last_scale[1])
+        self.userscanvas.scale('all', 0, 0, current_scale[0], current_scale[1])
+        self.filescanvas.scale('all', 0, 0, current_scale[0], current_scale[1])
+        self.last_scale = (aw, ah)
 
         # self.listBox = tk.Listbox(self, selectmode=tk.EXTENDED)
         # self.listBox.grid(row=10, column=0, rowspan=4)
@@ -81,8 +90,11 @@ class ChooseFilesPage(Page):
         q = Queue()
         Thread(target=self.loadFiles, args=[q], daemon=True).start()
         current_filename = ''
-        while self.loadedfiles < self.filesToRead.__len__():
+        while True:
             rep = q.get()
+            print(str(rep))
+            if rep == 'DONE':
+                break
             if rep.__len__() == 2:
                 filename = rep[0]
                 progress = rep[1]
@@ -96,22 +108,27 @@ class ChooseFilesPage(Page):
         self.filesToRead = []
         self.filescanvas.itemconfig(self.filescountertext, text=(
                 str(self.loadedfiles) + " files loaded"))
+        q.close()
 
     def loadFiles(self, q):
         progress = 0
         if self.filesToRead.__len__() > 0:
             for file in self.filesToRead:
-                q.put([file, 0])
                 self.loadFile(file, q)
                 progress += 1
                 q.put([progress])
                 # yield progress
+        q.put('DONE')
+
 
 
         # print('files loaded')
 
     def loadFile(self, file, q):
+        q.put([file, 0])
+        import time as t
         f = open(file, 'r')
+        print(t.time())
         filename = file.split('/')[-1]
         counter = 0
         js_packs = json.load(f)

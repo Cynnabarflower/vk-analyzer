@@ -4,6 +4,7 @@ from Gui.RegionalizePage import *
 from Gui.AnalyzerPage import *
 import tkinter as tk
 from tkinter import ttk
+from threading import Timer
 
 background_color = '#F0F0ED'
 
@@ -12,6 +13,7 @@ class Gui(tk.Tk):
     page = ''
     pages = []
     page_number = 0  # 240 240 237
+    page_changed = True
 
     def show(self, page):
         page.tkraise()
@@ -22,9 +24,14 @@ class Gui(tk.Tk):
         # self.iconify()
         # window = tk.Toplevel(self)# Whatever size
         # self.overrideredirect(1)  # Remove border
+        self.width = 0
+        self.timer = None
+        self.height = 0
         self.initUI()
 
     def initUI(self):
+
+        self.minsize(380, 330)
         menubar = tk.Menu(self, bd=-2, borderwidth=0)
         self.config(menu=menubar, bd=-2, borderwidth=0)
         # pages = [ChooseFilesPage(f), RegionalizePage(f)]
@@ -55,24 +62,53 @@ class Gui(tk.Tk):
         style.layout('TNotebook.padding', [])
         # turn off tabs
         self.container = tk.Frame(self, bd=-2, borderwidth = 0, highlightthickness=0, highlightbackground='red')
-        self.container.pack(expand=0, padx=0, pady=0)
+        self.container.pack(expand=1, fill=tk.BOTH, padx=0, pady=0)
 
-        self.note = ttk.Notebook(self.container, padding=0)
+        # self.note = ttk.Notebook(self.container, padding=0)
+        self.note = Note(self.container)
         for F in (ChooseFilesPage, RegionalizePage, AnalyzerPage):
             frame = F(parent=self.note, controller=self)
-            frame.pack()
             self.note.add(frame)
             self.pages.append(frame)
             # frame.grid(row=0, column=1, sticky="nsew")
             frame.configure(background=background_color)
 
-        nb = NavBar(self.container, pages=['Loader', 'Regionalizer', 'Analyzer'], onclicked= lambda n: self.show_page(n))
-        nb.pack(fill = 'both', padx = 0, pady = 0, side='top', expand=False)
+        self.nb = NavBar(self.container, pages=['Loader', 'Regionalizer', 'Analyzer'], onclicked= lambda n: self.show_page(n))
+        self.nb.pack(fill = 'both', padx = 0, pady = 0, side='top', expand=0)
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
-        self.show_page(1)
+        self.note.select(0)
+        self.page_number = 0
+
+
+
+        self.container.bind("<Configure>", self.resize)
+
+    def resize(self, e):
+        print(e.width, e.height)
+        if not self.page_changed and self.width > 0 and self.height > 0:
+            self.current_w = e.width
+            self.current_h = e.height
+            if self.timer is not None:
+                self.timer.cancel()
+            self.timer = Timer(0.1, lambda: self.do_resize(e.width, e.height, e.width / self.width, e.height / self.height))
+            self.timer.start()
+        else:
+            self.height = e.height
+            self.width = e.width
+            self.current_w = e.width
+            self.current_h = e.height
+            for page in self.pages:
+                page.resize(e.width, e.height, 1, 1)
+            self.page_changed = False
+
+    def do_resize(self, w, h, aw, ah):
+        self.pages[self.page_number].resize(w, h, aw, ah)
+
 
     def show_page(self, page_number):
         self.page_number = page_number
+        self.do_resize(self.current_w, self.current_h, self.current_w/self.width, self.current_h/self.height)
+        self.page_changed = True
         self.note.select(page_number)
 
 

@@ -13,6 +13,7 @@ class Page(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent, relief='flat', borderwidth=0, bd=-2, padx = 0, pady = 0)
         self.controller = controller
+        self.scale = (1, 1)
         # nb = NavBar(self, pages=pagesRU, onclicked= lambda n: self.setPage(n))
         # nb.grid(row=0, column=0)
 
