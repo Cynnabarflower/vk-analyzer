@@ -18,6 +18,10 @@ class Gui(tk.Tk):
 
     def __init__(self):
         tk.Tk.__init__(self)
+        # self.attributes('-alpha', 0.0)  # For icon
+        # self.iconify()
+        # window = tk.Toplevel(self)# Whatever size
+        # self.overrideredirect(1)  # Remove border
         self.initUI()
 
     def initUI(self):
@@ -38,20 +42,25 @@ class Gui(tk.Tk):
 
         style = ttk.Style()
         style.theme_create("mytheme", parent="alt", settings={
-            "TNotebook": {"configure": {"tabmargins": [-2, -2, 0, 0]}},
-            'Canvas': {'configure': {'bd' : -2}}
-            }
+            "Tab": {"configure": []},
+            'Canvas': {'configure': {'bd' : -2}},
+            "TFrame": {"configure": {'borderwidth': -10, 'highlightthicknes': 0}},
+            "TNotebook": {
+                "configure": {"background": 'red', "tabmargins": [-2, -2, -2, -2]}}
+        }
                            )
         style.theme_use("mytheme")
         style = ttk.Style()
         style.layout('TNotebook.Tab', [])
+        style.layout('TNotebook.padding', [])
         # turn off tabs
-        self.container = tk.Frame(self, bd=-2)
+        self.container = tk.Frame(self, bd=-2, borderwidth = 0, highlightthickness=0, highlightbackground='red')
         self.container.pack(expand=0, padx=0, pady=0)
 
         self.note = ttk.Notebook(self.container, padding=0)
         for F in (ChooseFilesPage, RegionalizePage, AnalyzerPage):
             frame = F(parent=self.note, controller=self)
+            frame.pack()
             self.note.add(frame)
             self.pages.append(frame)
             # frame.grid(row=0, column=1, sticky="nsew")
