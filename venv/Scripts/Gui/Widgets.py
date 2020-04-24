@@ -161,9 +161,10 @@ class ScrollList(tk.Frame):
         button.progress = 0
         self.remove(button=button)
 
-    def resize(self, w, h):
-        self.canvas.configure(width=self.w * w, height=self.h * h)
-        self.scale = (w, h)
+    def resize(self,w, h, aw, ah):
+        self.canvas.configure(width=self.w * aw, height=self.h * ah)
+        self.scale = (aw, ah)
+        print(w, h, aw, ah, 'self: ', self.h * ah)
         self.canvas.delete('all')
         self.initcanvas()
         # self.updatecanvas()
@@ -171,7 +172,7 @@ class ScrollList(tk.Frame):
     def initcanvas(self):
         if not self.figurecolor is None:
             round_rectangle(self.canvas, self.padding[3], self.padding[0], self.w * self.scale[0] - self.padding[1],
-                            self.h * self.scale[1] - self.padding[2], radius=32, fill=self.figurecolor)
+                            (self.h * self.scale[1]) - self.padding[2], radius=32, fill=self.figurecolor)
         y = self.dy + self.item_padding + self.padding[0]
         for button in self.buttons:
             self.draw_new(button, y)
@@ -179,7 +180,7 @@ class ScrollList(tk.Frame):
         self.canvas.create_rectangle(self.padding[3], 0, self.w * self.scale[0] - self.padding[1], self.padding[0],
                                      outline=self.backgroundcolor,
                                      fill=self.backgroundcolor, tag='frame')
-        self.canvas.create_rectangle(0, self.h * self.scale[1] - self.padding[2], self.w * self.scale[0],
+        self.canvas.create_rectangle(self.padding[3], self.h * self.scale[1] - self.padding[2], self.w * self.scale[0] - self.padding[1],
                                      self.h * self.scale[1], outline=self.backgroundcolor,
                                      fill=self.backgroundcolor, tag='frame')
 
@@ -384,9 +385,9 @@ class ProgressButton(tk.Frame):
                                       font=self.font)
             box = canvas.bbox(text)
 
-    def resize(self, w, h):
-        self.scale = (w, h)
-        self.canvas.configure(height=self.h * h, width=self.w * w)
+    def resize(self, w, h, aw, ah):
+        self.scale = (aw, ah)
+        self.canvas.configure(height=self.h * ah, width=self.w * aw)
         self.fit_text()
         self.canvas.delete('all')
         self.updatecanvas()
@@ -443,7 +444,7 @@ class ProgressButton(tk.Frame):
 class SimpleButton(tk.Frame):
 
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=BUTTON_HEIGHT + 2 * PADDING, backgroundcolor='#f1f0ec',
-                 onclicked=None, text='+', icon=None, textcolor='#ffffff',
+                 onclicked=None, text='', icon=None, textcolor='#ffffff',
                  fillcolor="#4978a6", loadcolor='#224b79', borderradius=18, padding=10, font=("Colibri", 25),
                  fixed=False):
         tk.Frame.__init__(self, parent)
@@ -462,7 +463,7 @@ class SimpleButton(tk.Frame):
         self.fixed = fixed
         self.state = False
         self.icon = icon
-        c = tk.Canvas(self, width=w, height=h, bg=backgroundcolor, bd=-2)
+        c = tk.Canvas(self, width=w, height=h, bg=self.backgroundcolor, bd=-2)
         c.bind("<Button-1>", self.clicked)
         c.pack()
         self.canvas = c
@@ -492,15 +493,18 @@ class SimpleButton(tk.Frame):
         self.fit_text()
         self.updatecanvas(self.fillcolor)
 
+
     def clicked(self, e):
         if self.fixed:
             self.updatecanvas(self.loadcolor if not self.state else self.fillcolor)
             self.state = not self.state
-            self.onclicked(self.state)
+            if self.onclicked is not None:
+                self.onclicked(self.state)
             self.updatecanvas(self.loadcolor if not self.state else self.fillcolor)
         else:
             self.updatecanvas(self.loadcolor)
-            self.onclicked()
+            if self.onclicked is not None:
+                self.onclicked()
             self.updatecanvas(self.fillcolor)
 
     def updatecanvas(self, color=None):
@@ -565,6 +569,22 @@ class Row(tk.Frame):
         self.align = align
 
     def add(self, *widgets):
+        for widget in widgets:
+            widget.grid(column = self.widgets.__len__(), row = 0, sticky = 'n')
+            self.widgets.append(widget)
+
+    def resize(self, w, h):
+        for widget in self.widgets:
+            widget.resize(w, h)
+
+
+class Wrap(tk.Frame):
+    def __init__(self, parent, align):
+        tk.Frame.__init__(self, parent)
+        self.widgets = []
+        self.align = align
+
+    def add(self, *widgets):
         self.widgets += widgets
         for widget in widgets:
             widget.pack(side='left', anchor=self.align)
@@ -578,21 +598,39 @@ class Note(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
         self.pages = []
-        self.current = None
+        self.current_index = -1
 
     def add(self, *widgets):
         self.pages += widgets
         # for w in widgets:
         #      # w.grid(column = 0, row = 0)
 
-    def select(self, page):
+    def select(self, page = None, previous = False, next = False):
+
+        if self.current_index > -1:
+            self.pages[self.current_index].forget()
+        if isinstance(page, int):
+            self.current_index = page
+        elif previous:
+            self.current_index = max(0, self.current_index - 1)
+        elif next:
+            self.current_index = min(self.pages.__len__() - 1, self.current_index + 1)
+        else:
+            for i in range(self.pages.__len__()):
+                if self.pages[i] == page:
+                    self.current_index = i
+                    break
         # self.pages[page].tkraise()
-        if self.current is not None:
-            self.current.forget()
-        self.current = self.pages[page]
-        self.current.propagate(0)
-        self.current.pack(expand=tk.YES, fill=tk.BOTH, padx=0, pady=0, side='top')
-        self.current.propagate(0)
+        self.pages[self.current_index].pack(expand=tk.YES, fill=tk.BOTH, padx=0, pady=0, side='top')
+
+    def resize(self, w, h, aw, ah, all = False):
+        if all:
+            for page in self.pages:
+                if hasattr(page, 'resize'):
+                    page.resize(w, h, aw, ah)
+        elif hasattr(self.pages[self.current_index], 'resize'):
+            self.pages[self.current_index].resize(w, h, aw, ah)
+
 
 
 class RuMap(tk.Frame):
@@ -605,17 +643,18 @@ class RuMap(tk.Frame):
         self.last_scale = 1
         self.hover_region_tag = ''
         self.hower_callback = hower_callback
+        # F0F0ED
         c = tk.Canvas(self, width=w, height=h, bd=-2, bg='#F0F0ED')
         c.pack()
         c.bind("<Motion>", self.map_hover)
         self.canvas = c
         self.draw_map(c)
 
-    def resize(self, w, h):
-        self.canvas.configure(width=w * self.width, height=h * self.height)
-        current_scale = min(w, h) / self.last_scale
+    def resize(self, w, h, aw, ah):
+        current_scale = min(aw, ah) / self.last_scale
+        self.canvas.configure(width=aw * self.width, height= min(aw, ah) * self.height)
         self.canvas.scale('all', 0, 0, current_scale, current_scale)
-        self.last_scale = min(w, h)
+        self.last_scale = min(aw, ah)
         # self.draw_map(self.canvas, scale=self.scaleX * min(w,h))
         # resize(self.canvas, w, h)
 

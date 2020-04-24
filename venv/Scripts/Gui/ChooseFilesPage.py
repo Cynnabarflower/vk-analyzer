@@ -28,8 +28,9 @@ class ChooseFilesPage(Page):
         super().__init__(parent, controller)
         self.scrollList = ScrollList(self, onclicked= lambda n: self.show_page(n), item_height=self.SCROLL_ITEM_HEIGHT, item_padding=self.SCROLL_ITEM_PADDING_Y, padding =(self.SCROLL_PADDING), w= self.SCROLL_WIDTH, h=self.SCROLL_HEIGHT)
         self.scrollList.grid(row = 0, column = 0)
-        self.add_button = SimpleButton(self, onclicked= self.addFile)
+        self.add_button = SimpleButton(self, onclicked= self.addFile, text = '+')
         self.add_button.grid(row = 1, column = 0)
+
 
         self.userscanvas = canvas = tk.Canvas(self, width=285, height=265, bg=Gui.background_color, bd=-2)
         canvas.grid(row = 0, column = 1)
@@ -52,8 +53,9 @@ class ChooseFilesPage(Page):
 
 
     def resize(self, w, h, aw, ah):
+        print('FilePage resized',w, h, aw, ah)
         self.add_button.resize(aw, ah)
-        self.scrollList.resize(aw, ah)
+        self.scrollList.resize(w, h, aw, ah)
         self.userscanvas.configure(width=aw * 285, height=ah * 265)
         self.filescanvas.configure(width=aw * 265, height=ah * (BUTTON_HEIGHT + 2*PADDING))
         current_scale = (aw / self.last_scale[0], ah / self.last_scale[1])
@@ -136,9 +138,10 @@ class ChooseFilesPage(Page):
         for js in js_packs:
             for user in js:
                 if user['id'] in self.users:
-                    self.users[user['id']] += [user]
+                    if self.users[user['id']].__len__() < user.__len__():
+                        self.users[user['id']] = user
                 else:
-                    self.users[user['id']] = [user]
+                    self.users[user['id']] = user
             counter += 1
             q.put((filename, counter/total))
         self.after(100, lambda: self.scrollList.remove(name = filename))

@@ -17,7 +17,7 @@ class Page(tk.Frame):
         # nb = NavBar(self, pages=pagesRU, onclicked= lambda n: self.setPage(n))
         # nb.grid(row=0, column=0)
 
-
-
-    def setPage(self, n):
-        self.controller.show_page(n)
+    def resize(self, w, h, aw, ah):
+        for child in self.children:
+            if hasattr(child, 'resize'):
+                child.resize(w, h, aw, ah)

@@ -84,30 +84,29 @@ class Gui(tk.Tk):
         self.container.bind("<Configure>", self.resize)
 
     def resize(self, e):
-        print(e.width, e.height)
-        if not self.page_changed and self.width > 0 and self.height > 0:
-            self.current_w = e.width
-            self.current_h = e.height
-            if self.timer is not None:
-                self.timer.cancel()
-            self.timer = Timer(0.1, lambda: self.do_resize(e.width, e.height, e.width / self.width, e.height / self.height))
-            self.timer.start()
+        if self.width > 0 and self.height > 0:
+            if not self.page_changed:
+                self.current_w = e.width
+                self.current_h = e.height - self.nb.h
+                if self.timer is not None:
+                    self.timer.cancel()
+                self.timer = Timer(0.1, lambda: self.note.resize(self.current_w, self.current_h, self.current_w / self.width, self.current_h / self.height))
+                self.timer.start()
+            else:
+                # self.note.resize(e.width, e.height, e.width / self.width, e.height / self.height)
+                self.page_changed = False
         else:
-            self.height = e.height
+            self.height = e.height - self.nb.h
             self.width = e.width
             self.current_w = e.width
-            self.current_h = e.height
-            for page in self.pages:
-                page.resize(e.width, e.height, 1, 1)
+            self.current_h = e.height - self.nb.h
+            self.note.resize(self.current_w, self.current_h, 1, 1, all = True)
             self.page_changed = False
-
-    def do_resize(self, w, h, aw, ah):
-        self.pages[self.page_number].resize(w, h, aw, ah)
 
 
     def show_page(self, page_number):
         self.page_number = page_number
-        self.do_resize(self.current_w, self.current_h, self.current_w/self.width, self.current_h/self.height)
+        self.note.resize(self.current_w, self.current_h, self.current_w/self.width, self.current_h/self.height, all = True)
         self.page_changed = True
         self.note.select(page_number)
 

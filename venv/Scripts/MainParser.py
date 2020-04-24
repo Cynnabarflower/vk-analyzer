@@ -678,7 +678,7 @@ class VkLoader:
         while i < 4 * 12:
             try:
                 i = i + 1
-                filename = self.getFileName('last_online')
+                filename = self.getFileName('last_  online')
                 self.getFriendsInfo(self.getUserInfo()['id'], 'last_seen', 1, filename)
                 print(i)
                 print(filename)

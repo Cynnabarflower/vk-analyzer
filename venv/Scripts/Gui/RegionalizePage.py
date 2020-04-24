@@ -51,11 +51,11 @@ class RegionalizePage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.scrollList = ScrollList(self, onclicked=lambda n: self.show_page(n), w=self.SCROLL_WIDTH,
-                                     h=360, item_height=self.SCROLL_ITEM_HEIGHT, bg=Gui.background_color,
+                                     h=340, item_height=self.SCROLL_ITEM_HEIGHT, bg=Gui.background_color,
                                      figurecolor='#91b0cf',
                                      fillcolor=None, item_padding=self.SCROLL_ITEM_PADDING_Y,
                                      padding=self.SCROLL_PADDING, progress_offset=5)
-        self.scrollList.grid(row=0, column=0, rowspan=3)
+        self.scrollList.grid(row=0, column=0, rowspan=3, sticky='n')
         self.regions_coordinates = json.load(open('allCoordinates.json', 'r'))
         for reg in self.regions_coordinates:
             self.scrollList.add(reg['name'].replace('RU-', ''))
@@ -65,11 +65,11 @@ class RegionalizePage(Page):
                     point[0] = point[1]
                     point[1] = t
         self.scrollList.sort(reverse=False, key=lambda item: item.value)
-        self.ruMap = RuMap(self, self.regions_coordinates, hower_callback = self.map_hower)
-        self.ruMap.grid(column=1, row=0)
+        self.ruMap = RuMap(self, self.regions_coordinates, hower_callback = self.map_hower, )
+        self.ruMap.grid(column=1, row=0, sticky = 's')
 
-        self.row = row =  Row(self, align = 'e')
-        row.grid(column = 1, row = 1)
+        self.row = row =  Row(self, align = 'n')
+        row.grid(column = 1, row = 1, sticky='n')
         row.add(
             SimpleButton(parent=row, text='123', h = 50, w = 90),
             SimpleButton(parent=row, text='123', h = 50, w = 90),
@@ -94,14 +94,15 @@ class RegionalizePage(Page):
         app.mainloop()
 
     def resize(self, w, h, aw, ah):
+        print('Regionalyzer resized')
         self.scale = (aw, ah)
         if w < self.scrollList.w + self.ruMap.width * aw:
             aw = (w - self.scrollList.w) / self.ruMap.width
-        self.ruMap.resize(aw, ah)
+        self.ruMap.resize(w, h, aw, ah)
         self.ruMap.update_colors(self.regions, self.color_gradient)
-        self.scrollList.resize(1, ah)
+        self.scrollList.resize(w, h, 1, ah)
         self.row.resize(aw, ah)
-        self.button1.resize(aw, ah)
+        self.button1.resize(w, h, aw, ah)
 
     def map_hower(self, name):
         if name == '':
@@ -124,11 +125,9 @@ class RegionalizePage(Page):
     def watch_progress(self):
         progress = self.regionalizeProgress[0] / self.regionalizeProgress[1]
         self.button1.drawProgress(progress)
+        self.ruMap.update_colors(self.regions, self.color_gradient)
+        self.update_scrolllist(self.regions)
         if progress < 1:
-            with self.regions_lock:
-                regions = self.regions.copy()
-            self.ruMap.update_colors(regions, self.color_gradient)
-            self.update_scrolllist(regions)
             self.after(500, self.watch_progress)
 
     def regionalize(self):
@@ -144,7 +143,7 @@ class RegionalizePage(Page):
 
         threads = []
         step = min(50000, round(u_len))
-        q = Queue()
+
         while i < u_len:
             threads.append(
                 Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i]), daemon=True))
