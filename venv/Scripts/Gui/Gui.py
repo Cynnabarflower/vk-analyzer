@@ -2,6 +2,7 @@ from Gui.ChooseFilesPage import *
 from Gui.Page import *
 from Gui.RegionalizePage import *
 from Gui.AnalyzerPage import *
+from Gui.TablePage import *
 import tkinter as tk
 from tkinter import ttk
 from threading import Timer
@@ -50,7 +51,7 @@ class Gui(tk.Tk):
         style = ttk.Style()
         style.theme_create("mytheme", parent="alt", settings={
             "Tab": {"configure": []},
-            'Canvas': {'configure': {'bd' : -2}},
+            'Canvas': {'configure': {'bd' : -2, 'highlightthickness' : 0}},
             "TFrame": {"configure": {'borderwidth': -10, 'highlightthicknes': 0}},
             "TNotebook": {
                 "configure": {"background": 'red', "tabmargins": [-2, -2, -2, -2]}}
@@ -66,14 +67,14 @@ class Gui(tk.Tk):
 
         # self.note = ttk.Notebook(self.container, padding=0)
         self.note = Note(self.container)
-        for F in (ChooseFilesPage, RegionalizePage, AnalyzerPage):
+        for F in (ChooseFilesPage, TablePage, RegionalizePage, AnalyzerPage):
             frame = F(parent=self.note, controller=self)
             self.note.add(frame)
             self.pages.append(frame)
             # frame.grid(row=0, column=1, sticky="nsew")
             frame.configure(background=background_color)
 
-        self.nb = NavBar(self.container, pages=['Loader', 'Regionalizer', 'Analyzer'], onclicked= lambda n: self.show_page(n))
+        self.nb = NavBar(self.container, pages=['Loader','Table', 'Regionalizer', 'Analyzer'], onclicked= lambda n: self.show_page(n))
         self.nb.pack(fill = 'both', padx = 0, pady = 0, side='top', expand=0)
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
         self.note.select(0)
@@ -135,5 +136,7 @@ class Gui(tk.Tk):
         self.quit()
 
     def update_users(self, users):
+
         self.pages[1].update_users(users)
+        self.pages[2].update_users(users)
 

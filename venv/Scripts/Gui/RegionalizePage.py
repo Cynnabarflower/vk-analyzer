@@ -9,6 +9,8 @@ import json
 from threading import Thread
 from multiprocessing import Queue
 import region_coordinates
+import numpy as np
+import pandas as pd
 
 
 class RegionalizePage(Page):
@@ -135,7 +137,7 @@ class RegionalizePage(Page):
         u_len = self.users.__len__()
         self.regionalizeProgress = [0, u_len]
         self.watch_progress()
-        users_list = list(self.users.values())
+        users_list = self.users
         i = 0
         cities = json.load(open('citiesMap.json', 'r'))
         cities['1'] = {'region': 'RU-MOS'}
@@ -144,20 +146,51 @@ class RegionalizePage(Page):
         threads = []
         step = min(50000, round(u_len))
 
-        while i < u_len:
-            threads.append(
-                Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i]), daemon=True))
-            i += min(u_len, step)
+        # while i < u_len:
+        #     threads.append(
+        #         Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i]), daemon=True))
+        #     i += min(u_len, step)
+        Thread(target=lambda: self._reg2(users_list, cities)).start()
 
-        for th in threads:
-            th.start()
+        # for th in threads:
+        #     th.start()
+
+    def detect_region(self, user, cities, regs, not_found):
+        if (not pd.isna(user['city'])):
+            city_id = str(user['city']['id'])
+            if city_id in cities:
+                reg = cities[city_id]['region']
+                if reg in regs:
+                    regs[reg] += 1
+                    return reg
+                else:
+                    regs[reg] = 1
+                    return reg
+            else:
+                not_found[city_id] = ''
+        return None
+
+
+    def _reg2(self, users_df, cities):
+        not_found = {}
+        regs = {}
+        users_df['detected_region'] = users_df.apply(lambda row: self.detect_region(row, cities, regs, not_found), axis = 1)
+        with self.regions_lock:
+            for reg in regs:
+                if reg in self.regions:
+                    self.regions[reg] += regs[reg]
+                else:
+                    self.regions[reg] = regs[reg]
+            self.regionalizeProgress[0] += users_df.__len__()
+            print(self.regions.__len__(), ':  ', self.regions)
+            print('not found: ', not_found.__len__())
 
     def __reg(self, users_list, cities, a, b, name, ):
         not_found = {}
         regs = {}
         for i in range(a, b):
-            if ('city' in users_list[i][0]):
-                city_id = str(users_list[i][0]['city']['id'])
+            if ('city' in users_list[i]):
+                city_id = str(users_list[i]['city']['id'])
                 if city_id in cities:
                     reg = cities[city_id]['region']
                     if reg in regs:
