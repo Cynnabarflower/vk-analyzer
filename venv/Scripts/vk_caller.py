@@ -68,7 +68,10 @@ class VKFA:
 		:return:
 		:rtype:
 		"""
-		h = self.obj.get_hash(self.section)
+		try:
+			h = self.obj.get_hash(self.section)
+		except Exception as e:
+			return e
 		if not h:
 			raise Exception("Error while getting hash")
 		params = {
@@ -100,8 +103,11 @@ class VKFA:
 		Returns the hash of user's page
 		:rtype: object
 		"""
-		r = self.s.get('https://vk.com/dev/' + method)
-		h = re.findall('onclick="Dev.methodRun\(\'(.+?)\', this\);', r.text)
+		try:
+			r = self.s.get('https://vk.com/dev/' + method)
+			h = re.findall('onclick="Dev.methodRun\(\'(.+?)\', this\);', r.text)
+		except:
+			raise
 		if h:
 			return h
 		return False
