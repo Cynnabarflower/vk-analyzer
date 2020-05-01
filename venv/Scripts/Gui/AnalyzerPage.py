@@ -55,10 +55,11 @@ class AnalyzerPage(Page):
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
         self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
 
+
     def resize(self, w, h, aw, ah):
         print('Analyzer resized')
         self.note.resize(w, h, aw, ah, all=True)
-        self.navigationNote.resize( w, h, aw, ah, all=True)
+        self.navigationNote.resize(w, h, aw, ah, all=True)
 
     class _Page1:
         def __init__(self, frame):
