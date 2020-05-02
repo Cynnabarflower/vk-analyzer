@@ -136,7 +136,6 @@ class Gui(tk.Tk):
         self.quit()
 
     def update_users(self, users):
-
+        self.pages[0].update_users(users)
         self.pages[1].update_users(users)
         self.pages[2].update_users(users)
-

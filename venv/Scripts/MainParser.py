@@ -172,6 +172,8 @@ class VkLoader:
         :param offset:
         :return:
         """
+
+        count = 200
         conversations = self.admin_apis[self.current_acc].messages.getConversations(count=count, offset=offset);
         return conversations['items']
 
@@ -546,7 +548,7 @@ class VkLoader:
         self.current_acc = (self.current_acc + 1) % self.admin_apis.__len__()
         print('Account changed to', self.current_acc)
 
-    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None, offset=0):
+    def getFromGroup(self, group_name, maxMembers=-1, user_fields=None, offset=0, apis = None):
         """
         Finds group by name and loads full info about it's members
         :param group_name:
@@ -567,7 +569,12 @@ class VkLoader:
                 print('Incorrect user fields, should be str')
                 return
 
-        group = self.admin_apis[self.current_acc].groups.getById(group_id=group_name, fields="members_count")
+        current_acc = 0
+        if not apis:
+            apis = self.admin_apis
+            current_acc = self.current_acc
+
+        group = apis[current_acc].groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
         group_id = group[0]['id']
         members_count = group[0]['members_count']
@@ -590,33 +597,42 @@ class VkLoader:
                 if offset >= members_count:
                     break
             c_time = time.time()
-            resp = self.admin_apis[self.current_acc].execute(code=execString + ';')
+            resp = apis[current_acc].execute(code=execString + ';')
             attempt = 1
             while isinstance(resp, Exception) and attempt < self.MAX_ATTEMPTS:
                 if isinstance(resp, requests.exceptions.RequestException):
                     print('ConnectionError waiting 10 min')
-                    resp = self.admin_apis[self.current_acc].execute(code=execString + ';')
+                    resp = apis[current_acc].execute(code=execString + ';')
                     time.sleep(self.BIG_SLEEP_TIME * 10 * 10)
                     attempt = 1
                     continue
-                elif isinstance(resp.args[0] , str):
-                    print(resp.args[0])
-                    time.sleep(self.BIG_SLEEP_TIME * attempt)
-                    resp = self.admin_apis[self.current_acc].execute(code=execString + ';')
-                    attempt = attempt + 5
-                    continue
+                elif(resp.args.__len__() > 0):
+                    if isinstance(resp.args[0] , str):
+                        print(resp.args[0])
+                        time.sleep(self.BIG_SLEEP_TIME * attempt)
+                        resp = apis[current_acc].execute(code=execString + ';')
+                        attempt = attempt + 5
+                        continue
 
-                elif (resp.args[0]['error_code'] in self.VK_ERRORS):
-                    if resp.args[0]['error_code'] == 29:
-                        self.change_account()
+                    elif (resp.args[0]['error_code'] in self.VK_ERRORS):
+                        if resp.args[0]['error_code'] == 29:
+                            current_acc = (current_acc + 1) % apis.__len__()
+                            # self.change_account()
+                        else:
+                            print(str(history.args[0]['error_msg']))
+                            f.write(']')
+                            f.close()
                     else:
-                        print(str(history.args[0]['error_msg']))
-                        f.write(']')
-                        f.close()
-                print('Exception in getMessages sleeping..  ' + str(resp.args[0]['error_msg']))
-                time.sleep(self.BIG_SLEEP_TIME * attempt)
-                resp = self.admin_apis[self.current_acc].execute(code=execString + ';')
-                attempt = attempt + 3
+                        print('Exception in getMessages sleeping..  ' + str(resp.args[0]['error_msg']))
+                        time.sleep(self.BIG_SLEEP_TIME * attempt)
+                        resp = apis[current_acc].execute(code=execString + ';')
+                        attempt = attempt + 3
+                else:
+                    print('Exception in getMessages sleeping..  ',resp.args)
+                    time.sleep(self.BIG_SLEEP_TIME * attempt)
+                    resp = apis[current_acc].execute(code=execString + ';')
+                    attempt = attempt + 5
+
             if isinstance(resp, Exception):
                 return members
 
@@ -628,7 +644,7 @@ class VkLoader:
             print('got: ', offset, '/', members_count)
             if offset < members_count:
                 time.sleep(self.SLEEP_TIME)
-        print('done!')
+        print(apis[current_acc], group_name, 'done!')
         return members
 
     def saveToFile(self, obj, name):
@@ -643,7 +659,7 @@ class VkLoader:
         f = open(filename, "w+", True, 'UTF-8')
         f.write(json.dumps(obj))
         f.close()
-        print('File saved: ', filename)
+        # print('File saved: ', filename)
 
     def getFriendsInfo(self, user_id, user_fields, depth, filename=''):
         """
@@ -687,6 +703,30 @@ class VkLoader:
             f.close()
         return friends
 
+    def init_load_groups(self):
+
+        apis = [
+            vk_caller.VKFA('+77053909746', '123456zxcvb'),
+            vk_caller.VKFA('+79091758992','evolom08ASDfghjkl')
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
+        time.sleep(60*60)
+        apis = [
+            vk_caller.VKFA('crazytuner@freenet.de','oberhase64'),
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
+        time.sleep(60 * 60)
+        apis = [
+            vk_caller.VKFA('+79886828338', 'EGUMES54')
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
+
     def auth(self, tel='', pas=''):
         """
         Authorization by phone and password in vk
@@ -698,8 +738,8 @@ class VkLoader:
         :rtype:
         """
 
-        pas = '9841b7a33831ef01'
-        tel = '+79629884898'
+        # pas = '9841b7a33831ef01'
+        # tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_apis[self.current_acc] = vk_caller.VKFA(phone, passw)
@@ -707,6 +747,7 @@ class VkLoader:
         if not auth:
             return False
         print(auth)
+        return True
         self.admin_apis.insert(1, vk_caller.VKFA('+15102750266', 'wZigy4cuHNi4KQy'))
         auth = self.admin_apis[1].auth()
         print(auth)
@@ -768,7 +809,7 @@ class VkLoader:
 
         self.mainMenu()
 
-    def load_groups(self):
+    def load_groups(self, apis = None):
         f = open('groups.txt', 'r')
         for line in f:
             ids = line.split(sep='-')
@@ -778,7 +819,7 @@ class VkLoader:
             print(reg)
             for id in ids:
                 if id and id.isdigit():
-                    loaded_users = self.getFromGroup(group_name=id, user_fields='last_seen')
+                    loaded_users = self.getFromGroup(group_name=id, user_fields='last_seen', apis=apis)
                     counter  = 1
                     for loaded_users_chunk in loaded_users:
                         self.saveToFile(
@@ -802,7 +843,7 @@ class VkLoader:
             'O': {'name': 'Online friends', 'foo': lambda: self.getOnline(self.getFileName('online'), 0)},
             'L': {'name': 'Last time online monitor (4 times/h 3h)', 'foo': lambda: self.watchLastSeen()},
             'G': {'name': 'Get from group', 'foo': lambda: group_chosen()},
-            'GS': {'name': 'Load groups', 'foo': lambda: self.load_groups()},
+            'GS': {'name': 'Load groups', 'foo': lambda: self.init_load_groups()},
             'LID': {'name': 'Load by id', 'foo': lambda: load_by_id()},
             'Q': {'name': 'Quit', 'foo': lambda: sys.exit()}
         }
@@ -951,7 +992,8 @@ class VkLoader:
                 for conversation in conversations:
                     conversation[1]['button'].pack(fill=BOTH, expand=1)
 
-        auth_menu()
+        # auth_menu()
+        loadMainMenu()
         root.mainloop()
 
 

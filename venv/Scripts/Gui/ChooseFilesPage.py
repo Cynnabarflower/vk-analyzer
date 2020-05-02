@@ -24,13 +24,13 @@ class ChooseFilesPage(Page):
     WINDOW_WIDTH = 530
     WINDOW_HEIGHT = 360
 
-    filesToRead = []
-    users = dict()
-    image = None
-    loadedfiles = 0
 
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.filesToRead = []
+        self.users = pd.DataFrame(None, columns=['id', 'first_name', 'last_name', 'deactivated', 'sex', 'photo', 'online', 'can_write_private_message', 'can_post'])
+        self.image = None
+        self.loadedfiles = 0
         self.scrollList = ScrollList(self, onclicked=lambda e: self.scrollList.updatecanvas(), item_height=self.SCROLL_ITEM_HEIGHT,
                                      item_padding=self.SCROLL_ITEM_PADDING_Y, padding=(self.SCROLL_PADDING),
                                      w=self.SCROLL_WIDTH, h=self.SCROLL_HEIGHT)
@@ -224,7 +224,7 @@ class ChooseFilesPage(Page):
 
     def resize(self, w, h, aw, ah):
         print('FilePage resized', w, h, aw, ah)
-        self.add_button.resize(aw, ah)
+        self.add_button.resize(w, h, aw, ah)
         self.scrollList.resize(w, h, aw, ah)
         self.filescanvas.configure(width=aw * 265, height=ah * (BUTTON_HEIGHT + 2 * PADDING))
         current_scale = (aw / self.last_scale[0], ah / self.last_scale[1])
@@ -314,7 +314,7 @@ class ChooseFilesPage(Page):
                 self.scrollList.setProgress(name=filename, progress=progress)
             else:
                 self.loadedfiles = rep[0]
-                self.update_users()
+                self.controller.update_users(self.users)
                 self.filescanvas.itemconfig(self.filescountertext, text=(
                         str(self.loadedfiles) + " of " + str(self.filesToRead.__len__()) + " loaded..."))
                 self.update()
@@ -343,22 +343,24 @@ class ChooseFilesPage(Page):
         filename = file.split('/')[-1]
         counter = 0
         js_packs = json.load(f)
-        total = js_packs.__len__()
+        total = js_packs.__len__() + 1
         for js in js_packs:
-            for user in js:
-                if user['id'] in self.users:
-                    if self.users[user['id']].__len__() < user.__len__():
-                        self.users[user['id']] = user
-                else:
-                    self.users[user['id']] = user
+        #     for user in js:
+        #         if user['id'] in self.users['id']:
+        #             if self.users['id' == user['id']].__len__() < user.__len__():
+        #                 self.users[user['id']] = user
+        #         else:
+        #             self.users = self.users.append(user, ignore_index=True)
             counter += 1
+            self.users = self.users.append(pd.DataFrame(js))
             q.put((filename, counter / total))
+        self.users = self.users.drop_duplicates(subset='id', keep="last")
+        q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename))
 
-    def update_users(self):
+    def update_users(self, users):
         if not self.profilePage:
             self.rotatingcard.rotate(0)
-        self.controller.update_users(pd.DataFrame((self.users.values())))
 
 def create_number(canvas, i, scale, offsetX, offsetY):
         paths = [

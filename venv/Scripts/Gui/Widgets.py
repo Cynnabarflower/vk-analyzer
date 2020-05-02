@@ -6,6 +6,7 @@ import threading as th
 from multiprocessing import Queue
 import re
 import time
+import pandas as pd
 
 BUTTON_WIDTH = 245
 BUTTON_HEIGHT = 50
@@ -110,30 +111,35 @@ class ScrollList(tk.Frame):
         self.buttons = []
         for item in items:
             self.add(item)
+        self.visibleheight = min(
+            self.h - max(self.buttons.__len__(), 5) * (self.item_height + self.item_padding) - self.padding[0] - self.padding[
+                2],
+            0)
         c.pack()
         self.initcanvas()
         self.updatecanvas()
 
     def add(self, element, update=True):
-        self.buttons.append(
-            self.ScrollListButton('item' + str(self.nextTag), y=0, value=element, fillcolor=self.fillcolor,
-                                  choosable=self.choosable)
-        )
+        if not isinstance(element, ScrollListButton):
+            self.buttons.append(
+                ScrollListButton('item' + str(self.nextTag), y=0, value=element, fillcolor=self.fillcolor,
+                                 choosable=self.choosable, borderradius=self.borderraadius,
+                                 loadcolor=self.loadcolor, textcolor=self.textcolor)
+            )
+            font = fit_text(self.item_width - 2, self.item_height - 2, element,
+                            (self.buttons[-1].font, self.buttons[-1].fontsize))
+            self.buttons[-1].font = font[0]
+            self.buttons[-1].fontsize = font[1]
+        else:
+            element.tag = 'item' + str(self.nextTag)
+            self.buttons.append(element)
         self.nextTag += 1
-        canvas = tk.Canvas(self)
-        text = canvas.create_text(100, 100, text=element, font=(self.buttons[-1].font, self.buttons[-1].fontsize))
-        box = canvas.bbox(text)
-        while (box[2] - box[0] > self.item_width - 2 or box[3] - box[
-            1] > self.item_height - 2):
-            self.buttons[-1].fontsize -= 1
-            text = canvas.create_text(100, 100, text=element,
-                                      font=(self.buttons[-1].font, self.buttons[-1].fontsize))
-            box = canvas.bbox(text)
+
         self.visibleheight = min(
             self.h - self.buttons.__len__() * (self.item_height + self.item_padding) - self.padding[0] - self.padding[
                 2],
             0)
-        # self.moved_buttons[self.buttons[-1]] = self.buttons.__len__()-1
+
         if update:
             self.updatecanvas()
 
@@ -169,10 +175,9 @@ class ScrollList(tk.Frame):
         self.updatecanvas()
 
     def reset(self):
-        for button in self.buttons:
-            self.canvas.delete(button.tag)
-            self.canvas.delete(button.tag + 'text')
-            self.canvas.delete(button.tag + 'progress')
+        self.nextTag = 0
+        self.dy = 0
+        self.canvas.delete('all')
         self.buttons.clear()
         self.updatecanvas()
 
@@ -180,9 +185,12 @@ class ScrollList(tk.Frame):
         button.progress = 0
         self.remove(button=button)
 
-    def resize(self, w, h, aw, ah):
+    def resize(self, w, h, aw, ah, only_canvas = False):
         self.canvas.configure(width=self.w * aw, height=self.h * ah)
         self.scale = (aw, ah)
+        if only_canvas:
+            self.updateframe()
+            return
         print(w, h, aw, ah, 'self: ', self.h * ah)
         self.canvas.delete('all')
         self.initcanvas()
@@ -196,6 +204,10 @@ class ScrollList(tk.Frame):
         for button in self.buttons:
             self.draw_new(button, y)
             y += (self.item_height + self.item_padding)
+        self.updateframe()
+
+    def updateframe(self):
+        self.canvas.delete('frame')
         self.canvas.create_rectangle(self.padding[3], 0, self.w * self.scale[0] - self.padding[1], self.padding[0],
                                      outline=self.backgroundcolor,
                                      fill=self.backgroundcolor, tag='frame')
@@ -208,12 +220,11 @@ class ScrollList(tk.Frame):
         if not button.needsupdate:
             if y != button.y:
                 self.canvas.move(button.tag, 0, y - button.y)
-                progress = self.canvas.find_withtag(button.tag + 'progress')
-                self.canvas.move(progress, 0, y - button.y)
-                text = self.canvas.find_withtag(button.tag + 'text')
-                self.canvas.move(text, 0, y - button.y)
+                self.canvas.move(button.tag + 'progress', 0, y - button.y)
+                self.canvas.move(button.tag + 'text', 0, y - button.y)
                 # self.canvas.itemconfigure(text, text = str(button.y)+'->'+str(y)+" "+button.text)
                 button.set_y(y)
+
         else:
             self.canvas.delete(button.tag)
             self.canvas.delete(button.tag + 'text')
@@ -227,16 +238,7 @@ class ScrollList(tk.Frame):
         e = min(b + math.floor(self.h * self.scale[1] / block_height) + 2, self.buttons.__len__())
         return (b, e)
 
-    def updatecanvas(self, need_check = True):
-        # print('Scrollbox update..')
-        # if self.update_time < 0:
-        #     return
-        # delta = time.time() - self.update_time
-        # if (need_check and delta < 0.005):
-        #     print(delta)
-        #     self.update_time = -1
-        #     self.after(100, lambda: self.updatecanvas(need_check = False))
-        #     return
+    def updatecanvas(self):
 
         self.update_time = time.time()
         update_next = {}
@@ -283,32 +285,18 @@ class ScrollList(tk.Frame):
         x0 = self.padding[3] + (
                 self.w * self.scale[0] - self.padding[1] - self.padding[3] - self.item_width * self.scale[0]) / 2
         x1 = x0 + self.item_width * self.scale[0]
-        if self.fillcolor is not None:
-            round_rectangle(self.canvas, x0, y, x1, y + self.item_height,
-                            radius=self.borderraadius, outline=button.fillcolor,
-                            fill=button.fillcolor, tag=button.tag)
-        if button.isChosen:
-            round_rectangle(self.canvas, x0, y, x1, y + self.item_height,
-                            radius=self.borderraadius, outline=self.loadcolor,
-                            fill=self.loadcolor, tag=button.tag)
 
-        if button.progress > 0.02:
-            round_rectangle(self.canvas, x0 + self.progress_offset * self.scale[0], y,
-                            ((self.item_width - self.progress_offset) * button.progress + self.progress_offset) *
-                            self.scale[0] + x0,
-                            y + self.item_height,
-                            radius=self.borderraadius, outline=self.loadcolor, fill=self.loadcolor,
-                            tag=button.tag + 'progress')
-        elif button.progress > 0:
-            self.canvas.create_rectangle(x0 + self.progress_offset, y, ((
-                                                                                self.item_width - self.progress_offset) * button.progress + self.progress_offset) *
-                                         self.scale[0] + x0,
-                                         y + self.item_height, outline=self.loadcolor, fill=self.loadcolor,
-                                         tag=button.tag + 'progress')
-        self.canvas.create_text((x1 + x0) / 2, y + self.item_height / 2, text=str(button.text),
-                                fill=self.textcolor,
-                                font=(button.font, button.fontsize),
-                                tag=button.tag + 'text')
+        button.draw_back(self.canvas, x0, y, x1, y + self.item_height)
+
+        button.draw_chosen(self.canvas, x0, y, x1, y + self.item_height)
+
+        button.draw_progress(self.canvas, x0 + self.progress_offset * self.scale[0],
+                             y,
+                             x1 - self.progress_offset * self.scale[0],
+                             y + self.item_height)
+
+        button.draw_text(self.canvas, x0, y, x1, y + self.item_height)
+
         button.set_y(y)
         button.needsupdate = False
 
@@ -354,6 +342,7 @@ class ScrollList(tk.Frame):
     def chosen(self, e, i):
         if self.buttons[i].choosable:
             self.buttons[i].chosen()
+            self.updatecanvas()
         if self.onclicked:
             self.onclicked(self.buttons[i])
 
@@ -390,7 +379,7 @@ class ScrollList(tk.Frame):
 
     def moved(self, d, update=True):
 
-        ndy = d.y - self.lasty if d.delta == 0 else self.item_height * d.delta/100
+        ndy = d.y - self.lasty if d.delta == 0 else self.item_height * d.delta / 100
 
         self.dy = self.dy + ndy
         # print(ndy, '  ', self.dy + ndy, '  ',
@@ -399,7 +388,6 @@ class ScrollList(tk.Frame):
         self.dy = min(self.padding[2] + self.item_padding, self.dy + ndy) if ndy > 0 else max(self.dy + ndy,
                                                                                               self.visibleheight -
                                                                                               self.padding[0])
-        print('Scrollbox moved')
         if update:
             self.updatecanvas()
         self.lasty = d.y
@@ -419,39 +407,106 @@ class ScrollList(tk.Frame):
                     break
         self.updatecanvas()
 
-    class ScrollListButton:
-        def __init__(self, tag, y, value=None, text=None, font='Colibri', fontsize=25, progress=0, fillcolor='#ffffff',
-                     choosable=False):
-            self.tag = tag
-            self.y = y
-            self.old_y = y
-            self.value = value or text
-            self.text = text or str(value)
-            self.font = font
-            self.fontsize = fontsize
-            self.progress = progress
-            self.progresstext = ''
-            self.fillcolor = fillcolor
+
+class ScrollListButton:
+    def __init__(self, tag, y, value=None, text=None, font='Colibri', fontsize=25, progress=0, fillcolor='#ffffff',
+                 choosable=False, borderradius=6, loadcolor='red', textcolor='white'):
+        self.tag = tag
+        self.y = y
+        self.old_y = y
+        self.value = value or text
+        self.text = text or str(value)
+        self.font = font
+        self.fontsize = fontsize
+        self.progress = progress
+        self.progresstext = ''
+        self.fillcolor = fillcolor
+        self.needsupdate = True
+        self.isChosen = False
+        self.choosable = choosable
+        self.borderradius = borderradius
+        self.loadcolor = loadcolor
+        self.textcolor = textcolor
+
+    def draw_back(self, canvas, x0, y0, x1, y1):
+        if self.fillcolor is not None:
+            round_rectangle(canvas, x0, y0, x1, y1,
+                            radius=self.borderradius, outline=self.fillcolor,
+                            fill=self.fillcolor, tag=self.tag)
+
+    def draw_chosen(self, canvas, x0, y0, x1, y1):
+        if self.isChosen:
+            round_rectangle(canvas, x0, y0, x1, y1,
+                            radius=self.borderradius, outline=self.loadcolor,
+                            fill=self.loadcolor, tag=self.tag)
+
+    def draw_progress(self, canvas, x0, y0, x1, y1):
+        if self.progress > 0.02:
+            round_rectangle(canvas, x0, y0,
+                            ((x1 - x0) * self.progress + x0),
+                            y1,
+                            radius=self.borderradius, outline=self.loadcolor, fill=self.loadcolor,
+                            tag=self.tag + 'progress')
+        elif self.progress > 0:
+            canvas.create_rectangle(x0, y0, ((x1 - x0) * self.progress + x0),
+                                    y1, outline=self.loadcolor, fill=self.loadcolor,
+                                    tag=self.tag + 'progress')
+
+    def draw_text(self, canvas, x0, y0, x1, y1):
+        canvas.create_text((x1 + x0) / 2, (y0 + y1) / 2, text=str(self.text),
+                           fill=self.textcolor,
+                           font=(self.font, self.fontsize),
+                           tag=self.tag + 'text')
+
+    def chosen(self, chosen=None):
+        if (chosen == None or chosen != self.isChosen):
+            self.isChosen = not self.isChosen
             self.needsupdate = True
-            self.isChosen = False
-            self.choosable = choosable
 
-        def chosen(self, chosen=None):
-            if (chosen == None or chosen != self.isChosen):
-                self.isChosen = not self.isChosen
-                self.needsupdate = True
+    def set_text(self, text):
+        self.text = text
+        self.needsupdate = True
 
-        def set_text(self, text):
-            self.text = text
-            self.needsupdate = True
+    def set_progress(self, progress):
+        self.progress = progress
+        self.needsupdate = True
 
-        def set_progress(self, progress):
-            self.progress = progress
-            self.needsupdate = True
+    def set_y(self, y):
+        self.old_y = self.y
+        self.y = y
 
-        def set_y(self, y):
-            self.old_y = self.y
-            self.y = y
+
+class WideScrollListButton(ScrollListButton):
+    def __init__(self, tag, y, values=None, text=None, font='Colibri', fontsize=25, progress=0, fillcolor='#ffffff',
+                 choosable=False, borderradius=6, loadcolor='red', textcolor='white', parts=6):
+
+        ScrollListButton.__init__(self, tag, y, value='', text='', font=font, fontsize=fontsize, progress=progress,
+                                  fillcolor=fillcolor, choosable=choosable,
+                                  borderradius=borderradius, loadcolor=loadcolor, textcolor=textcolor)
+        self.value = values
+        self.text = text if text is not None else list(map(lambda a: str(a), values))
+        self.parts = parts
+
+    def draw_back(self, canvas, x0, y0, x1, y1):
+        if self.fillcolor is not None:
+            round_rectangle(canvas, x0, y0, x0 + (x1 - x0) * max(1, self.text.__len__() / self.parts), y1,
+                            radius=self.borderradius, outline=self.fillcolor,
+                            fill=self.fillcolor, tag=self.tag)
+
+    def draw_chosen(self, canvas, x0, y0, x1, y1):
+        if self.isChosen:
+            round_rectangle(canvas, x0, y0, x0 + (x1 - x0) * max(1, self.text.__len__() / self.parts), y1,
+                            radius=self.borderradius, outline=self.loadcolor,
+                            fill=self.loadcolor, tag=self.tag)
+
+    def draw_text(self, canvas, x0, y0, x1, y1):
+        step = (x1 - x0) / self.parts
+        for text_item in self.text:
+            canvas.create_text(x0 + step / 2, (y0 + y1) / 2, text=str(text_item),
+                               fill=self.textcolor,
+                               font=fit_text(step - 2, y1 - y0 - 2, text_item, (self.font, self.fontsize)),
+                               tag=self.tag + 'text')
+            x0 += step
 
 
 class ProgressButton(tk.Frame):
@@ -661,7 +716,7 @@ class SimpleButton(tk.Frame):
                  onclicked=None, text='', icon=None, textcolor='#ffffff',
                  fillcolor="#4978a6", loadcolor='#224b79', borderradius=18, padding=10, font=("Colibri", 25),
                  fixed=False):
-        tk.Frame.__init__(self, parent, highlightthickness = 0)
+        tk.Frame.__init__(self, parent, highlightthickness=0)
         self.w = w
         self.h = h
         self.scale = (1, 1)
@@ -687,7 +742,8 @@ class SimpleButton(tk.Frame):
 
     def set_text(self, text):
         self.text = text
-        self.font = fit_text((self.w - self.padding * 2) * self.scale[0] * 0.8, (self.h - self.padding * 2) * self.scale[1] * 0.8, self.text, self.font)
+        self.font = fit_text((self.w - self.padding * 2) * self.scale[0] * 0.8,
+                             (self.h - self.padding * 2) * self.scale[1] * 0.8, self.text, self.font)
 
     def fit_text(self):
         canvas = tk.Canvas(self)
@@ -706,13 +762,13 @@ class SimpleButton(tk.Frame):
                                       font=self.font)
             box = canvas.bbox(text)
 
-    def rotate(self, ox = 0, oy = 0, oz = 0):
+    def rotate(self, ox=0, oy=0, oz=0):
         self.rotation = [ox, oy, oz]
         self.updatecanvas(self.fillcolor)
 
-    def resize(self, w, h):
-        self.scale = (w, h)
-        self.canvas.configure(height=self.h * h, width=self.w * w)
+    def resize(self, w, h, aw, ah):
+        self.scale = (aw, ah)
+        self.canvas.configure(height=self.h * ah, width=self.w * aw)
         self.fit_text()
         self.updatecanvas(self.fillcolor)
 
@@ -733,9 +789,11 @@ class SimpleButton(tk.Frame):
         self.canvas.delete('all')
         color = self.fillcolor if color is None else color
         rrp = round_rectangle_points(self.padding * self.scale[0], self.padding * self.scale[1],
-                        (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1], radius=self.borderradius)
-        rotate_polygon(rrp, self.w * self.scale[0] / 2, self.h/2 * self.scale[1], ox = self.rotation[0], oy = self.rotation[1], oz = self.rotation[2])
-        self.canvas.create_polygon(rrp, outline=color, fill=color, smooth = True)
+                                     (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1],
+                                     radius=self.borderradius)
+        rotate_polygon(rrp, self.w * self.scale[0] / 2, self.h / 2 * self.scale[1], ox=self.rotation[0],
+                       oy=self.rotation[1], oz=self.rotation[2])
+        self.canvas.create_polygon(rrp, outline=color, fill=color, smooth=True)
         # round_rectangle(self.canvas, self.padding * self.scale[0], self.padding * self.scale[1],
         #                 (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1],
         #                 radius=self.borderradius, outline=color, fill=color)
@@ -834,15 +892,16 @@ class InputField(tk.Frame):
         self.controller = controller
         self.text_padding = 8
         self.is_password = is_password
-        self.coursor = -1
+        self.coursor = 0
+        self.own_canvas = False
 
         if canvas is None:
-            self.canvas = tk.Canvas(self, width=self.w, height=self.h, bg=self.bg, bd=-2, highlightthickness = 0)
+            self.own_canvas = True
+            self.canvas = tk.Canvas(self, width=self.w, height=self.h, bg=self.bg, bd=-2, highlightthickness=0)
             self.canvas.bind("<Button-1>", self.clicked)
             self.x = 0
             self.y = 0
             self.canvas.pack()
-
 
     def hide(self):
         self.canvas.delete(self.id)
@@ -864,13 +923,15 @@ class InputField(tk.Frame):
     def key(self, e):
         if self.in_focus:
             if e.keycode == 8:
-                self.text = self.text[:-1]
-                self.coursor = max(-1, self.coursor - 1)
+                self.text = self.text[:max(0, self.coursor - 1)]+ self.text[self.coursor:]
+                self.coursor = max(0, self.coursor - 1)
                 self.update_text()
             elif e.keycode == 37:
-                self.coursor = max(-1, self.coursor - 1)
+                self.coursor = max(0, self.coursor - 1)
+                self.update_text()
             elif e.keycode == 39:
                 self.coursor = min(self.text.__len__(), self.coursor + 1)
+                self.update_text()
             elif e.char == '\t' or e.char == '\n' or e.char == '\r' or e.char == '':
                 self.in_focus = False
                 if self.on_ener:
@@ -878,19 +939,20 @@ class InputField(tk.Frame):
                 self.update_text()
             elif self.maxlen < 0 or self.text.__len__() < self.maxlen:
                 if e.char != '':
-                    self.text += e.char
+                    self.text = self.text[:self.coursor] +e.char+ self.text[self.coursor:]
                     self.coursor = min(self.text.__len__(), self.coursor + 1)
                     self.update_text()
 
     def clicked(self, e):
         elems = self.canvas.find_overlapping(e.x, e.y, e.x, e.y)
         if self.canvasbg in elems or self.canvastext in elems:
-            self.in_focus = True
-            for i in range(10):
-                self.canvas.bind(i, self.key)
-            self.canvas.bind('<Key>', self.key)
-            self.canvas.focus_set()
-            self.blink()
+            if not self.in_focus:
+                self.in_focus = True
+                for i in range(10):
+                    self.canvas.bind(i, self.key)
+                self.canvas.bind('<Key>', self.key)
+                self.canvas.focus_set()
+                self.blink()
             return True
         else:
             self.in_focus = False
@@ -903,10 +965,11 @@ class InputField(tk.Frame):
                 self.update_text()
                 return
             if t:
-                self.visible_text = (self.text if not self.is_password else ('*' * self.text.__len__())) + '│'
-                # self.visible_text = self.visible_text[:self.coursor] +'│'+ self.visible_text[self.coursor:]
+                self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
+                self.visible_text = self.visible_text[:self.coursor] +'|'+ self.visible_text[self.coursor:]
             else:
                 self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
+                self.visible_text = self.visible_text[:self.coursor] +' '+ self.visible_text[self.coursor:]
             self.canvas.itemconfigure(self.id + '_text', text=self.visible_text, font=self.font)
             self.controller.after(500, lambda: self.blink(t=not t))
         elif not t:
@@ -928,23 +991,24 @@ class InputField(tk.Frame):
 
     def resize(self, w, h, aw, ah):
         self.scale = (aw, ah)
+        if self.own_canvas:
+            self.canvas.configure(width=self.w * aw, height=self.h * ah)
         self.init_canvas()
 
 
 class Row(tk.Frame):
-    def __init__(self, parent, align):
+    def __init__(self, parent):
         tk.Frame.__init__(self, parent)
         self.widgets = []
-        self.align = align
 
     def add(self, *widgets):
         for widget in widgets:
             widget.grid(column=self.widgets.__len__(), row=0, sticky='n')
             self.widgets.append(widget)
 
-    def resize(self, w, h):
+    def resize(self, w, h, aw, ah):
         for widget in self.widgets:
-            widget.resize(w, h)
+            widget.resize(w, h, aw, ah)
 
 
 class RotatingCard(tk.Frame):
@@ -998,7 +1062,7 @@ class RotatingCard(tk.Frame):
                     change_page = True
                     self.rotate(0)
         if not change_page and self.clicked:
-            self.clicked(e, self.userscanvas,  self.w, self.h, self.padding, self.scale, (self.a % 360) * math.pi / 180)
+            self.clicked(e, self.userscanvas, self.w, self.h, self.padding, self.scale, (self.a % 360) * math.pi / 180)
 
     def rotate(self, to):
         self.userscanvas.delete('rr')
@@ -1049,9 +1113,9 @@ class Wrap(tk.Frame):
         for widget in widgets:
             widget.pack(side='left', anchor=self.align)
 
-    def resize(self, w, h):
+    def resize(self, w, h, aw, ah):
         for widget in self.widgets:
-            widget.resize(w, h)
+            widget.resize(w, h, aw, ah)
 
 
 class Note(tk.Frame):
@@ -1092,162 +1156,314 @@ class Note(tk.Frame):
             self.pages[self.current_index].resize(w, h, aw, ah)
 
 
+class ScrollableFrame(tk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        # canvas = tk.Canvas(self)
+        self.scrollbar = scrollbar = ttk.Scrollbar(self, orient="horizontal")
+        # self.scrollable_frame = ttk.Frame(canvas)
+        #
+        # self.scrollable_frame.bind(
+        #     "<Configure>",
+        #     lambda e: canvas.configure(
+        #         scrollregion=canvas.bbox("all")
+        #     )
+        # )
+        # canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        # canvas.configure(xscrollcommand=scrollbar.set)
+        # canvas.pack(side="bottom", fill="both", expand=True)
+        # self.canvases = [canvas]
+        self.canvases = []
+        self.canvases_to_resize = []
+        self.last_scale = (1,1)
+        self.scrollbar.configure(command=self.xview)
+        scrollbar.pack(side="bottom", fill="x")
+
+    def xview(self, scroll, step):
+        for canvas in self.canvases:
+            canvas.xview(scroll, step)
+
+    def resize(self, w, h, aw, ah):
+        self.last_scale = (aw / self.last_scale[0], ah / self.last_scale[1])
+        # for canvas in self.canvases_to_resize:
+        #     canvas.configure(height = )
+
+    def add_canvas(self, canvas):
+        self.canvases.append(canvas)
+        canvas.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+        canvas.configure(xscrollcommand=self.scrollbar.set)
+
+    def remove_scrollableframe(self, frame):
+        if frame.master.master in self.canvases:
+            frame.master.master.forget()
+            self.canvases.remove(frame.master.master)
+            self.canvases_to_resize.remove(frame.master.master)
+
+    def get_scrollableframe(self, row = 222, height = 100):
+        canvas = tk.Canvas(self, height = height, bg = 'red')
+        scrollable_frame = tk.Frame(canvas)
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(xscrollcommand=self.scrollbar.set)
+        # canvas.grid(row = row)
+        canvas.pack(side="top", fill="both", expand=True)
+        self.canvases_to_resize.append(canvas)
+        self.canvases.append(canvas)
+        return scrollable_frame
+
+
 class TableWidget(tk.Frame):
-    def __init__(self, parent, data, w=550, h=400, fields=['first_name', 'id', 'sex']):
+    def __init__(self, parent, data, w=550, h=400, fields=['first_name', 'id', 'sex', 'last_name'], data_changed = None):
         tk.Frame.__init__(self, parent)
         self.w = w
         self.h = h
         self.data = data
-        self.scrollLists = {}
+        self.scrollList = None
         self.fields = fields
-        i = 0
-        self.loadedIndexes = (0,0)
+        self.available_fields = self.fields
+        self.header = None
+        self.indexes_to_load = (0,0)
         self.loaded = True
+        self.ascending = True
+        self.data_changed = data_changed
+        self.horizontal_scrollbar = ScrollableFrame(self)
+        self.columns_on_screen = 3
+        self.header_height = 40
+        self.sort_field = 'id'
+        self.scale = (1,1)
+        self.load_thread = None
+        self.everything_loaded = False
+        self.selectedUsers = set()
+        self.sorted_data = pd.DataFrame(None, columns=self.available_fields)
+        self.input_row = Row(self)
+        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 3 * self.header_height, self.header_height, text='', bg='#ffffff',
+                                    empty_text='Search',
+                                    on_enter=lambda a: self.search(a))
+        inputfield.init_canvas()
+        self.input_row.add(self.inputfield)
+        check_all = SimpleButton(self.input_row, w = self.header_height, h = self.header_height, text='✓', onclicked=self.check_all, padding=5)
+        self.input_row.add(check_all)
+        uncheck_all = SimpleButton(self.input_row,w = self.header_height, h = self.header_height, text='☐', onclicked=self.uncheck_all, padding = 5)
+        self.input_row.add(uncheck_all)
+        delete_checked = SimpleButton(self.input_row,w = self.header_height, h = self.header_height, text='✗', onclicked=self.delete_checked, padding = 5)
+        self.input_row.add(delete_checked)
+        self.input_row.grid(row = 0, column = 0, sticky = 'n')
+        # inputfield.grid(row=0, column=0, sticky='n')
+        self.init_table()
+        self.setup_search('')
+        self.loadedIndexes = (0, 0)
+        self.init_load(0, 50)
+        #
+        # self.updateScrollLists(data)
 
-        for field in self.fields:
+    def check_all(self):
 
-            sl = ScrollList(self, choosable=True, loadcolor='#91b0cf', pointerup=self.pointerup,
-                            pointerdown=self.pointerdown, moved=self.moved, padding=(10, 0, 10, 0), w=180, h=self.h,
-                            fillcolor='white', borderradius=0, textcolor='#224b79', item_height=20, item_padding=5)
-            hat = InputField(self, None, 0, 0, 180, 40, text = '', bg='#ffffff', empty_text=field,
-                               on_enter=lambda a: print(a))
-            hat.init_canvas()
-            hat.grid(row=0, column=self.scrollLists.__len__(), sticky = 'n')
-            hat = SimpleButton(self, text=field, w=180, h=40, borderradius=0,
-                               onclicked=self.getLambda(self.sort, field))
-            hat.grid(row=1, column=self.scrollLists.__len__(), sticky = 'n')
-            self.scrollLists[field] = sl
-        self.loadCanvas = canvas = tk.Canvas(self, width=self.w, height=self.h - 40)
-        canvas.configure(bg='#f1f0ec')
-        self.progressBar = ProgressBar(self, canvas, 550 / 2, 400 / 2, 40, 60, '#91b0cf', '#224b79')
-        canvas.grid(column=0, row=2, columnspan=fields.__len__(), sticky='nsew')
-        self.update()
-        self.updateScrollLists(data)
+        data = self.data.query(self.search_sequence, engine = 'python')
+        self.selectedUsers.update(set(data['id'].values.tolist()))
+        self.sort(self.sort_field)
+
+    def uncheck_all(self):
+
+        data = self.data.query(self.search_sequence, engine='python')
+        data = data.query('id in @self.selectedUsers')['id'].values.tolist()
+        for id in data:
+            if id in self.selectedUsers:
+                self.selectedUsers.remove(id)
+        self.sort(self.sort_field)
+
+
+    def delete_checked(self):
+        self.data = self.data.query('not (id in @self.selectedUsers)')
+        if self.data_changed:
+            self.data_changed()
+        self.sort(self.sort_field)
+
+    def init_header(self, fields):
+        if self.header:
+            self.header.pack_forget()
+            self.horizontal_scrollbar.remove_scrollableframe(self.header)
+        self.header = row = Row(self.horizontal_scrollbar.get_scrollableframe(height=self.header_height))
+        for field in fields:
+            row.add(SimpleButton(row, text=field, w=round(self.w / self.columns_on_screen), h=self.header_height,
+                                 borderradius=0, padding=0,
+                                 onclicked=self.getLambda(self.sort, field)))
+        row.pack()
+
+    def item_clicked(self, item):
+        if item.isChosen:
+            self.selectedUsers.add(item.value)
+        else:
+            self.selectedUsers.remove(item.value)
+        print(self.selectedUsers)
+
+    def init_table(self):
+        self.init_header(self.fields)
+        self.scrollList = ScrollList(self.horizontal_scrollbar, choosable=True, loadcolor='#91b0cf',
+                                     pointerup=self.pointerup,
+                                     pointerdown=self.pointerdown, moved=self.moved, padding=(0, 0, 10, 0),
+                                     w=self.w, h=self.h,
+                                     fillcolor='white', borderradius=0, textcolor='#224b79', item_height=20,
+                                     item_padding=5, onclicked=self.item_clicked)
+        self.scrollList.pack(side = 'bottom', expand = True, fill = 'x')
+        self.horizontal_scrollbar.add_canvas(self.scrollList.canvas)
+        self.horizontal_scrollbar.grid(column=0, row=1, columnspan=1, sticky='nsew')
+
 
     def getLambda(self, foo, arg):
         return lambda: foo(arg.encode().decode())
 
-    def watch_load(self):
-        if self.loaded:
-            self.progressBar.working = False
-            for scrollList in self.scrollLists.values():
-                scrollList.updatecanvas()
-            self.loadCanvas.grid_forget()
-            i = 0
-            for sl in self.scrollLists.values():
-                sl.grid(row=2, column=i)
-                i += 1
-        else:
-            print('Loading...')
-            self.after(500, self.watch_load)
 
-    def fill_scroll_lists(self, data, a = 0, b = 10):
-        a = max(a, 0)
-        b = min(b, self.data.__len__())
+    def fill_scroll_lists(self, data, a=0, b=6):
+        # a = max(a, 0)
+        # b = min(b, self.data.__len__())
+        #
+        # if a < self.loadedIndexes[0]:
+        #     a = a
+        # elif a < self.loadedIndexes[1]:
+        #     a = self.loadedIndexes[1]
+        # else:
+        #     a = a
+        # if b < a:
+        #     self.loaded = True
+        #     return
+        # if b < self.loadedIndexes[0]:
+        #     b = b
+        # elif b < self.loadedIndexes[1]:
+        #     b = self.loadedIndexes[0]
+        # else:
+        #     b = b
+        #
+        # if a == b:
+        #     self.loaded = True
+        #     return
 
-        if a < self.loadedIndexes[0]:
-            a = a
-        elif a < self.loadedIndexes[1]:
-            a = self.loadedIndexes[1]
-        else:
-            a = a
-        if b < a:
-            self.loaded = True
-            return
-        if b < self.loadedIndexes[0]:
-            b = b
-        elif b < self.loadedIndexes[1]:
-            b = self.loadedIndexes[0]
-        else:
-            b = b
+        available_fields = []
+        for field in self.fields:
+            if field in data.columns:
+                available_fields.append(field)
+        if set(available_fields).difference(self.available_fields).__len__() > 0 or True:
+            self.available_fields = available_fields
+            self.init_header(self.available_fields)
+        for _, row in data[available_fields].iterrows():
+            wide_button = WideScrollListButton(
+                tag='',
+                y=0, values=row['id'], text=row.values, fillcolor=self.scrollList.fillcolor,
+                choosable=self.scrollList.choosable, borderradius=self.scrollList.borderraadius,
+                loadcolor=self.scrollList.loadcolor, textcolor=self.scrollList.textcolor, parts=self.columns_on_screen
+            )
+            if wide_button.value in self.selectedUsers:
+                wide_button.isChosen = True
+            self.scrollList.add(wide_button, update=False)
 
-        if a == b:
-            self.loaded = True
-            return
-
-        # for i in range(a,  b, 1):
-        #     if self.loadedIndexes[0] < i < self.loadedIndexes[1]:
-        #         i = self.loadedIndexes[1]
-        #     for field, scrollList in self.scrollLists.items():
-        #         if field in data[i]:
-        #             scrollList.add(data[i][field], update=False)
-        #     i += 1
-        #Для простоты пока пусть загружаются все строки от a (до b)
-        for field, scrollList in self.scrollLists.items():
-            users_list = data[a:b][field].tolist()
-            for attribute in users_list:
-                scrollList.add(attribute, update = False)
-        self.loadedIndexes = (min(self.loadedIndexes[0], a), max(self.loadedIndexes[1], b) )
-        self.loaded = True
+        # self.loadedIndexes = (min(self.loadedIndexes[0], a), max(self.loadedIndexes[1], b))
+        self.loadedIndexes = (0, self.scrollList.buttons.__len__())
         print('Filled ', self.loadedIndexes)
 
     def pointerdown(self, e):
-
-        for scrollList in self.scrollLists.values():
-            scrollList.pointerdown(e)
+        self.scrollList.pointerdown(e)
 
     def pointerup(self, e):
-        for scrollList in self.scrollLists.values():
-            scrollList.pointerup(e, update=False)
-        for scrollList in self.scrollLists.values():
-            scrollList.updatecanvas()
+        self.scrollList.pointerup(e)
 
     def moved(self, e):
+        self.scrollList.moved(e)
+        self.scrollList.updatecanvas()
+        visibleIndexes = self.scrollList.getVisibleIndexes()
+        if self.loadedIndexes[1] < visibleIndexes[1] + 5 and self.loaded and not self.everything_loaded:
+            self.loaded = False
+            self.init_load(self.loadedIndexes[1], self.loadedIndexes[1]+50)
 
-        for scrollList in self.scrollLists.values():
-            scrollList.moved(e, update=False)
+    def update_header(self):
+        for button in self.header.widgets:
+            if button.text == self.sort_field or button.text[:-1] == self.sort_field:
+                button.text = self.sort_field + ('↑' if self.ascending else '↓')
+                button.updatecanvas()
+            elif button.text.endswith('↓') or button.text.endswith('↑'):
+                button.text = button.text[:-1]
+                button.updatecanvas()
 
-        for scrollList in self.scrollLists.values():
-            scrollList.updatecanvas()
-        visibleIndexes = self.scrollLists[self.fields[0]].getVisibleIndexes()
-        if self.loadedIndexes[1] < visibleIndexes[1] + 5:
-            self.fill_scroll_lists(self.data, visibleIndexes[1], visibleIndexes[1] + 50)
-        if self.loadedIndexes[0] + 5 > visibleIndexes[0]:
-            self.fill_scroll_lists(self.data, visibleIndexes[0] - 50, visibleIndexes[0])
+    def setup_sort(self, field):
+        self.sort_field = field
+        self.ascending = not self.ascending
 
-    def sort(self, field, reverse=False):
-        print(field)
+    def sort(self, field):
+        self.setup_sort(field)
+        self.scrollList.reset()
+        self.everything_loaded = False
+        self.loadedIndexes = (0, 0)
+        self.init_load(0, 50)
 
-        key = lambda item: item[field]
-        thread = th.Thread(target=self.sort_data, args=([self.data, key, reverse]), daemon=True)
+    def resize(self, w, h, aw, ah):
+        self.scale = (aw, ah)
+        self.horizontal_scrollbar.resize(w, h, aw, ah)
+        self.input_row.resize(w, h/ah, aw, 1)
+        # self.inputfield.resize(w, h/ah, aw, 1)
+        self.scrollList.resize(w, h/ah, aw, 1, only_canvas = True)
+
+        self.update()
+
+    def setup_search(self, seq):
+        self.search_sequence = seq
+        if self.search_sequence == '':
+            self.search_sequence = 'tuple()'
+
+    def search(self, seq):
+        self.setup_search(seq.text)
+        self.scrollList.reset()
+        self.everything_loaded = False
+        self.loadedIndexes = (0,0)
+        self.init_load(0, 50)
+
+    def init_load(self, a, b):
+        if self.load_thread:
+            return
+        self.load_thread = thread = th.Thread(target=self.load_data, args=([self.sort_field, self.ascending, a, b]), daemon=True)
         thread.start()
         self.loadCanvas = canvas = tk.Canvas(self, width=self.w, height=self.h - 30)
         canvas.configure(bg='#f1f0ec')
         self.progressBar = ProgressBar(self, canvas, 550 / 2, 400 / 2, 40, 60, '#91b0cf', '#224b79')
         self.progressBar.drawprogress()
-        canvas.grid(column=0, row=1, columnspan=self.scrollLists.__len__(), sticky='nsew')
-        self.wait_for_sort()
+        canvas.grid(column=0, row=1, columnspan=1, sticky='nsew')
+        self.wait_for_load()
 
-    def selection(self):
-        print('')
-
-    def wait_for_sort(self):
+    def wait_for_load(self):
         if self.loaded:
-            print('Sorted')
+            self.load_thread.join()
+            print('Load complete')
             self.progressBar.working = False
             self.loadCanvas.grid_forget()
-            for scrollList in self.scrollLists.values():
-                scrollList.reset()
-            self.updateScrollLists(self.data)
+            self.scrollList.updatecanvas()
+            self.update_header()
+            print(self.loadedIndexes)
+            self.sorted_data = None
+            self.load_thread = None
         else:
-            self.after(500, self.wait_for_sort)
+            self.after(500, self.wait_for_load)
 
-    def work(self, q):
-        while True:
-            foo, args = q.get()
-            foo(args)
-            q.task_done()
-
-    def sort_data(self, data, key, reverse):
+    def load_data(self, field, ascending, a, b):
         self.loaded = False
-        self.data = sorted(data, key=key, reverse=reverse)
+        if self.data.__len__() > 0:
+            try:
+                d  = self.data.query(self.search_sequence, engine = 'python').sort_values(by=[field], ascending=ascending)
+            except Exception as e:
+                print(e)
+            else:
+                self.sorted_data = d[a:b]
+                self.fill_scroll_lists(self.sorted_data, a=a, b=b)
+                if self.sorted_data.__len__() < b - a:
+                    self.everything_loaded = True
         self.loaded = True
 
-    def updateScrollLists(self, data):
-        self.loaded = False
-        th.Thread(target=self.fill_scroll_lists, args=([data]), daemon=True).start()
-        self.progressBar.drawprogress()
-        self.watch_load()
 
 
 class RuMap(tk.Frame):
@@ -1482,7 +1698,7 @@ def fit_text(w, h, text, font):
     canvas = tk.Canvas()
     ctext = canvas.create_text(100, 100, text=text, font=font)
     box = canvas.bbox(ctext)
-    while (box[2] - box[0] > w or (box[3] - box[1]) > h):
+    while ((box[2] - box[0] > w or (box[3] - box[1]) > h) and font[1] > 1):
         font = (font[0], font[1] - 1)
         ctext = canvas.create_text(100, 100, text=text,
                                    font=font)

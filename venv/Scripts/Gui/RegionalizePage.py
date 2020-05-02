@@ -70,7 +70,7 @@ class RegionalizePage(Page):
         self.ruMap = RuMap(self, self.regions_coordinates, hower_callback = self.map_hower, )
         self.ruMap.grid(column=1, row=0, sticky = 's')
 
-        self.row = row =  Row(self, align = 'n')
+        self.row = row =  Row(self)
         row.grid(column = 1, row = 1, sticky='n')
         row.add(
             SimpleButton(parent=row, text='123', h = 50, w = 90),
@@ -103,7 +103,7 @@ class RegionalizePage(Page):
         self.ruMap.resize(w, h, aw, ah)
         self.ruMap.update_colors(self.regions, self.color_gradient)
         self.scrollList.resize(w, h, 1, ah)
-        self.row.resize(aw, ah)
+        self.row.resize(w, h, aw, ah)
         self.button1.resize(w, h, aw, ah)
 
     def map_hower(self, name):
