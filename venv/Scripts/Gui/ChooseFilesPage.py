@@ -263,8 +263,7 @@ class ChooseFilesPage(Page):
         # self.progressButton = ProgressButton(parent=self, onclicked=self.loadFiles, text='Load files')
         # self.progressButton.grid(row=16, column=0)
     def login(self, tel, pas):
-        pas = '9841b7a33831ef01be43136501'
-        tel = '+79629884898'
+
         print('Logging in')
         self.admin_apis = vk_caller.VKFA(tel, pas)
         auth = self.admin_apis.auth()
