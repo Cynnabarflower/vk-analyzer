@@ -112,7 +112,8 @@ class ScrollList(tk.Frame):
         for item in items:
             self.add(item)
         self.visibleheight = min(
-            self.h - max(self.buttons.__len__(), 5) * (self.item_height + self.item_padding) - self.padding[0] - self.padding[
+            self.h - max(self.buttons.__len__(), 5) * (self.item_height + self.item_padding) - self.padding[0] -
+            self.padding[
                 2],
             0)
         c.pack()
@@ -126,7 +127,7 @@ class ScrollList(tk.Frame):
                                  choosable=self.choosable, borderradius=self.borderraadius,
                                  loadcolor=self.loadcolor, textcolor=self.textcolor)
             )
-            font = fit_text(self.item_width * 0.9 - 2, self.item_height * 0.9 - 2 , element,
+            font = fit_text(self.item_width * 0.9 - 2, self.item_height * 0.9 - 2, element,
                             (self.buttons[-1].font, self.buttons[-1].fontsize))
             self.buttons[-1].font = font[0]
             self.buttons[-1].fontsize = font[1]
@@ -185,7 +186,7 @@ class ScrollList(tk.Frame):
         button.progress = 0
         self.remove(button=button)
 
-    def resize(self, w, h, aw, ah, only_canvas = False):
+    def resize(self, w, h, aw, ah, only_canvas=False):
         self.canvas.configure(width=self.w * aw, height=self.h * ah)
         self.scale = (aw, ah)
         if only_canvas:
@@ -455,7 +456,7 @@ class ScrollListButton:
     def draw_text(self, canvas, x0, y0, x1, y1):
         canvas.create_text((x1 + x0) / 2, (y0 + y1) / 2, text=str(self.text),
                            fill=self.textcolor,
-                           font=fit_text((x1 - x0)*0.8, (y1 - y0) * 0.9, self.text, (self.font, self.fontsize)),
+                           font=fit_text((x1 - x0) * 0.8, (y1 - y0) * 0.9, self.text, (self.font, self.fontsize)),
                            tag=self.tag + 'text')
 
     def chosen(self, chosen=None):
@@ -623,7 +624,7 @@ class ProgressBar:
         self.progress = 0.75
         self.time = 0
         self.visible = True
-        self.working = True
+        self.working = False
         self.scale = (1, 1)
         self.fit_text()
         for point in self.points1:
@@ -634,7 +635,6 @@ class ProgressBar:
 
     def set_visible(self, visible):
         self.visible = visible
-
 
     def fit_text(self):
         canvas = tk.Canvas()
@@ -657,16 +657,16 @@ class ProgressBar:
         if not self.working:
             self.canvas.delete('inner_' + self.id)
             self.canvas.itemconfigure('outer_' + self.id, state='hidden')
-            self.canvas.itemconfigure('progress_' + self.id, state = 'hidden')
+            self.canvas.itemconfigure('progress_' + self.id, state='hidden')
             self.working = True
             return
         if not self.visible:
             self.canvas.itemconfigure('outer_' + self.id, state='hidden')
-            self.canvas.itemconfigure('progress_' + self.id, state = 'hidden')
+            self.canvas.itemconfigure('progress_' + self.id, state='hidden')
             self.canvas.itemconfigure('inner' + self.id, state='hidden')
         else:
             self.canvas.itemconfigure('outer_' + self.id, state='normal')
-            self.canvas.itemconfigure('progress_' + self.id, state = 'normal')
+            self.canvas.itemconfigure('progress_' + self.id, state='normal')
             self.canvas.itemconfigure('inner' + self.id, state='normal')
 
         self.canvas.lift('outer_' + self.id)
@@ -691,7 +691,7 @@ class ProgressBar:
 
     def move(self, x, y):
         self.canvas.move('progress_' + self.id, x - self.x, y - self.y)
-        self.canvas.delete('outer_'+self.id)
+        self.canvas.delete('outer_' + self.id)
         self.x = x
         self.y = y
         self.points1 = ProgressBar.getcircle(x, y, self.r1, self.r2, progress_from=0, progress_to=1, width=6.283 / 360,
@@ -800,15 +800,21 @@ class SimpleButton(tk.Frame):
 
     def clicked(self, e):
         if self.fixed:
-            self.updatecanvas(self.loadcolor if not self.state else self.fillcolor)
             self.state = not self.state
+            self.updatecanvas(self.loadcolor if self.state else self.fillcolor)
             if self.onclicked is not None:
-                self.onclicked(self.state)
-            self.updatecanvas(self.loadcolor if not self.state else self.fillcolor)
+                if self.onclicked.__code__.co_argcount > 1 or self.onclicked.__code__.co_argcount == 1 and not 'self' in self.onclicked.__code__.co_varnames:
+                    self.onclicked(self)
+                else:
+                    self.onclicked()
+            # self.updatecanvas(self.loadcolor if not self.state else self.fillcolor)
         else:
             self.updatecanvas(self.loadcolor)
             if self.onclicked is not None:
-                self.onclicked()
+                if self.onclicked.__code__.co_argcount > 1 or self.onclicked.__code__.co_argcount == 1 and not 'self' in self.onclicked.__code__.co_varnames:
+                    self.onclicked(self)
+                else:
+                    self.onclicked()
             self.updatecanvas(self.fillcolor)
 
     def updatecanvas(self, color=None):
@@ -833,8 +839,90 @@ class SimpleButton(tk.Frame):
         self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
                                 fill=self.textcolor, font=self.font)
 
+
+class RadioButton(tk.Frame):
+    def __init__(self, parent, header_template=None, child_template=None, can_choose_multiple=False):
+        tk.Frame.__init__(self, parent)
+        self.scale = (1, 1)
+        self.header = None
+        self.values = []
+        self.can_choose_multiple = can_choose_multiple
+        self.chosenButtons = []
+        self.chosen_values = []
+
+        if header_template or child_template:
+            if header_template and not child_template:
+                child_template = header_template
+            elif child_template and not header_template:
+                header_template = child_template
+        else:
+            raise Exception('Must have at least one template')
+        self.header_template = header_template
+        self.child_template = child_template
+        self.header_template.canvas.forget()
+        self.child_template.canvas.forget()
+
+    def set_header(self, value):
+        if self.header:
+            self.header.grid_forget()
+        self.header = SimpleButton(
+            self,
+            w=self.header_template.w,
+            h=self.header_template.h,
+            backgroundcolor=self.header_template.backgroundcolor,
+            onclicked=None, text=value, icon=None, textcolor=self.header_template.textcolor,
+            fillcolor=self.header_template.fillcolor, loadcolor=self.header_template.loadcolor,
+            borderradius=self.header_template.borderradius,
+            padding=self.header_template.padding, font=self.header_template.font
+        )
+        self.header.value = value
+        self.header.grid(column=0, row=0)
+        self.header.updatecanvas()
+
+    def add_value(self, value):
+        child = SimpleButton(
+            self,
+            w=self.child_template.w,
+            h=self.child_template.h,
+            backgroundcolor=self.child_template.backgroundcolor,
+            onclicked=None, text=value, icon=None, textcolor=self.child_template.textcolor,
+            fillcolor=self.child_template.fillcolor, loadcolor=self.child_template.loadcolor,
+            borderradius=self.child_template.borderradius,
+            padding=self.child_template.padding, font=self.child_template.font, fixed=True
+        )
+        child.onclicked = lambda a: self.chosen(a)
+        child.grid(column=1 + self.children.__len__(), row=0)
+        child.updatecanvas()
+        self.values.append(child)
+
+    def chosen(self, button):
+        print('chosen ', button.text)
+        if not self.can_choose_multiple:
+            for button1 in self.chosenButtons:
+                print('unchosen ', button1.text)
+                button1.state = False
+                button1.updatecanvas()
+            self.chosenButtons = [button]
+        else:
+            if button.state:
+                self.chosenButtons.append(button)
+            else:
+                self.chosenButtons.remove(button)
+
+    def get_selected(self):
+        values = []
+        for button in self.chosenButtons:
+            values.append(button.text)
+        return values
+
+    def remove_value(self, value):
+        for child in self.values:
+            if child.value == value:
+                self.values.remove(child)
+
+
 class FloatingButton(SimpleButton):
-    def __init__(self, canvas, x, y, w, h, radius = 25, text = '', icon = None, onclicked = None, textcolor='#ffffff',
+    def __init__(self, canvas, x, y, w, h, radius=25, text='', icon=None, onclicked=None, textcolor='#ffffff',
                  fillcolor="#4978a6", loadcolor='#224b79', borderradius=18, font=("Colibri", 25)):
         self.canvas = canvas
         self.x = x
@@ -850,24 +938,25 @@ class FloatingButton(SimpleButton):
         self.borderradius = borderradius
         self.icon = icon
         self.font = font
-        self.tag = 'floating_button_'+ str(id(self))
-        self.scale = (1,1)
+        self.tag = 'floating_button_' + str(id(self))
+        self.scale = (1, 1)
 
     def initcanvas(self):
         self.canvas.delete(self.id)
         rrp = round_rectangle_points(self.padding * self.scale[0], self.padding * self.scale[1],
                                      (self.w) * self.scale[0], (self.h) * self.scale[1],
                                      radius=self.borderradius)
-        self.canvas.create_polygon(rrp, outline=color, fill=color, smooth=True, tag = self.tag)
+        self.canvas.create_polygon(rrp, outline=color, fill=color, smooth=True, tag=self.tag)
         if self.icon is not None:
             if self.text == '':
                 self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
-                                         anchor='center', tag = self.tag)
+                                         anchor='center', tag=self.tag)
             else:
                 self.canvas.create_image(self.w * self.scale[0] / 5, self.h * self.scale[1] / 2, image=self.icon,
-                                         anchor='center', tag = self.tag)
+                                         anchor='center', tag=self.tag)
         self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
                                 fill=self.textcolor, font=self.font)
+
 
 def round_rectangle(canvas, x1, y1, x2, y2, radius=25, radius1=None, radius2=None, radius3=None, radius4=None,
                     **kwargs):
@@ -981,10 +1070,15 @@ class InputField(tk.Frame):
                                                   font=self.font)
         self.update_text()
 
+    def paste(self, e):
+        print(e)
+
     def key(self, e):
         if self.in_focus:
+            if e.keycode == 17:
+                return
             if e.keycode == 8:
-                self.text = self.text[:max(0, self.coursor - 1)]+ self.text[self.coursor:]
+                self.text = self.text[:max(0, self.coursor - 1)] + self.text[self.coursor:]
                 self.coursor = max(0, self.coursor - 1)
                 self.update_text()
             elif e.keycode == 37:
@@ -1000,7 +1094,7 @@ class InputField(tk.Frame):
                 self.update_text()
             elif self.maxlen < 0 or self.text.__len__() < self.maxlen:
                 if e.char != '':
-                    self.text = self.text[:self.coursor] +e.char+ self.text[self.coursor:]
+                    self.text = self.text[:self.coursor] + e.char + self.text[self.coursor:]
                     self.coursor = min(self.text.__len__(), self.coursor + 1)
                     self.update_text()
 
@@ -1012,6 +1106,9 @@ class InputField(tk.Frame):
                 for i in range(10):
                     self.canvas.bind(i, self.key)
                 self.canvas.bind('<Key>', self.key)
+                self.canvas.bind('<<Cut>>', self.key)
+                self.canvas.bind('<<Copy>>', self.key)
+                self.canvas.bind('<<Paste>>', self.paste)
                 self.canvas.focus_set()
                 self.blink()
             return True
@@ -1027,10 +1124,10 @@ class InputField(tk.Frame):
                 return
             if t:
                 self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
-                self.visible_text = self.visible_text[:self.coursor] +'|'+ self.visible_text[self.coursor:]
+                self.visible_text = self.visible_text[:self.coursor] + '|' + self.visible_text[self.coursor:]
             else:
                 self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
-                self.visible_text = self.visible_text[:self.coursor] +' '+ self.visible_text[self.coursor:]
+                self.visible_text = self.visible_text[:self.coursor] + ' ' + self.visible_text[self.coursor:]
             self.canvas.itemconfigure(self.id + '_text', text=self.visible_text, font=self.font)
             self.controller.after(500, lambda: self.blink(t=not t))
         elif not t:
@@ -1044,7 +1141,7 @@ class InputField(tk.Frame):
         else:
             self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
 
-        self.font = fit_text((self.w - self.text_padding * 2) * self.scale[0], (self.h - 4) * self.scale[1],
+        self.font = fit_text((self.w - self.text_padding * 2) * self.scale[0], (self.h * 0.8) * self.scale[1],
                              self.visible_text + ' ' if self.maxlen < 0 else (
                                      self.visible_text + ' ' * (1 + self.maxlen - self.text.__len__())), self.font)
 
@@ -1240,7 +1337,7 @@ class ScrollableFrame(tk.Frame):
         # self.canvases = [canvas]
         self.canvases = []
         self.canvases_to_resize = []
-        self.last_scale = (1,1)
+        self.last_scale = (1, 1)
         self.scrollbar.configure(command=self.xview)
         scrollbar.pack(side="bottom", fill="x")
 
@@ -1269,8 +1366,8 @@ class ScrollableFrame(tk.Frame):
             self.canvases.remove(frame.master.master)
             self.canvases_to_resize.remove(frame.master.master)
 
-    def get_scrollableframe(self, row = 222, height = 100):
-        canvas = tk.Canvas(self, height = height, bg = 'red')
+    def get_scrollableframe(self, row=222, height=100):
+        canvas = tk.Canvas(self, height=height, bg='#4978a6')
         scrollable_frame = tk.Frame(canvas)
         scrollable_frame.bind(
             "<Configure>",
@@ -1288,7 +1385,7 @@ class ScrollableFrame(tk.Frame):
 
 
 class TableWidget(tk.Frame):
-    def __init__(self, parent, data, w=550, h=400, fields=['first_name', 'id', 'sex', 'last_name'], data_changed = None):
+    def __init__(self, parent, data, w=550, h=400, fields=[], data_changed=None):
         tk.Frame.__init__(self, parent)
         self.w = w
         self.h = h
@@ -1297,43 +1394,138 @@ class TableWidget(tk.Frame):
         self.fields = fields
         self.available_fields = self.fields
         self.header = None
-        self.indexes_to_load = (0,0)
+        self.indexes_to_load = (0, 0)
         self.loaded = True
+        self.showing_setting = False
         self.ascending = True
+        self.settings_container = None
         self.data_changed = data_changed
         self.horizontal_scrollbar = ScrollableFrame(self)
         self.columns_on_screen = 3
         self.header_height = 40
         self.sort_field = 'id'
-        self.scale = (1,1)
+        self.choosable_fields = {}
+        self.scale = (1, 1)
         self.load_thread = None
         self.everything_loaded = False
         self.selectedUsers = set()
         self.sorted_data = pd.DataFrame(None, columns=self.available_fields)
         self.input_row = Row(self)
-        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 3 * self.header_height, self.header_height, text='', bg='#ffffff',
-                                    empty_text='Search',
-                                    on_enter=lambda a: self.search(a))
+        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 4 * self.header_height,
+                                                  self.header_height, text='', bg='#ffffff',
+                                                  empty_text='Search',
+                                                  on_enter=lambda a: self.search(a.text))
         inputfield.init_canvas()
         self.input_row.add(self.inputfield)
-        check_all = SimpleButton(self.input_row, w = self.header_height, h = self.header_height, text='✓', onclicked=self.check_all, padding=5)
+        check_all = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='✓',
+                                 onclicked=self.check_all, padding=5)
         self.input_row.add(check_all)
-        uncheck_all = SimpleButton(self.input_row,w = self.header_height, h = self.header_height, text='☐', onclicked=self.uncheck_all, padding = 5)
+        uncheck_all = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='☐',
+                                   onclicked=self.uncheck_all, padding=5)
         self.input_row.add(uncheck_all)
-        delete_checked = SimpleButton(self.input_row,w = self.header_height, h = self.header_height, text='✗', onclicked=self.delete_checked, padding = 5)
+        delete_checked = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='✗',
+                                      onclicked=self.delete_checked, padding=5)
         self.input_row.add(delete_checked)
-        self.input_row.grid(row = 0, column = 0, sticky = 'n')
+        show_settings = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text=chr(9881),
+                                      onclicked=self.show_settings, padding=5, fixed=True)
+        self.input_row.add(show_settings)
+        self.input_row.grid(row=0, column=0, sticky='n')
         # inputfield.grid(row=0, column=0, sticky='n')
         self.init_table()
         self.setup_search('')
         self.loadedIndexes = (0, 0)
         self.init_load(0, 50)
+        # self.setting_canvas.grid(row=1, column=0)
         #
         # self.updateScrollLists(data)
 
+    def make_search_sequence(self):
+        for child in self.settings_container.children.values():
+            if isinstance(child, Row):
+                if '!inputfield' in child.children and '!simplebutton' in child.children and child.children[
+                    '!inputfield'].text != '':
+                    if self.search_sequence != '':
+                        self.search_sequence += ' and '
+                    self.search_sequence += '(' + child.children['!simplebutton'].text + '==' + child.children[
+                        '!inputfield'].text + ')'
+
+            elif isinstance(child, RadioButton):
+                field = child.header.text
+                selected = child.get_selected()
+                if selected.__len__() > 0:
+                    if self.search_sequence != '':
+                        self.search_sequence += ' and '
+                    self.search_sequence += '('
+                    for value in selected:
+                        self.search_sequence += field + '==' + str(value) + ' or '
+                    self.search_sequence = self.search_sequence[:-3] + ')'
+        self.inputfield.text = self.search_sequence
+        self.inputfield.update_text()
+        self.settings_container = None
+        self.search(self.search_sequence)
+
+
+    def show_settings(self):
+        w = self.w * 2/3 * self.scale[0]
+        h = self.h * 2/3 * self.scale[1]
+        if self.settings_container:
+            self.settings_container.grid_forget()
+            self.scrollList.textcolor = '#224b79'
+            self.search_sequence = ''
+            th.Thread(target= lambda: self.make_search_sequence(), daemon=True).start()
+            for button in self.scrollList.buttons:
+                button.textcolor = self.scrollList.textcolor
+                button.needsupdate = True
+            # self.scrollList.initcanvas()
+            self.scrollList.updatecanvas()
+            self.update()
+            return
+        self.scrollList.textcolor = '#aaaaaa'
+        for button in self.scrollList.buttons:
+            button.textcolor = self.scrollList.textcolor
+            button.needsupdate = True
+        # self.scrollList.initcanvas()
+        self.scrollList.updatecanvas()
+        self.settings_container = container = tk.Frame(self, highlightbackground = "#4978a6", highlightcolor= "#4978a6", highlightthickness = 5)
+        header_template = SimpleButton(self, text='ht', w=w/4, h=h/self.fields.__len__(), borderradius=0, padding=2, fillcolor='#4978a6')
+        child_template = SimpleButton(self, text='ht', w=60, h=h/self.fields.__len__(), borderradius=4, padding=4)
+        counter = 0
+        for field in self.available_fields:
+            if field in self.choosable_fields:
+                child_template.w = (w - header_template.w)/self.choosable_fields[field].__len__()
+                rb = RadioButton(container, header_template=header_template, child_template=child_template,
+                                 can_choose_multiple=True)
+                rb.set_header(field)
+                for value in self.choosable_fields[field]:
+                    rb.add_value(value)
+                rb.grid(row=counter, column=0)
+            else:
+                row = Row(container)
+                simple_button = SimpleButton(
+                    row,
+                    w=header_template.w,
+                    h=header_template.h,
+                    backgroundcolor=header_template.backgroundcolor,
+                    onclicked=None, text=field, icon=None, textcolor=header_template.textcolor,
+                    fillcolor=header_template.fillcolor, loadcolor=header_template.loadcolor,
+                    borderradius=header_template.borderradius,
+                    padding=header_template.padding, font=header_template.font
+                )
+                row.add(simple_button)
+                inputfield = InputField(row, None, 0, 0, (w - header_template.w),
+                                        header_template.h, text='', bg='#ffffff',
+                                        empty_text='',
+                                        on_enter=None)
+                inputfield.init_canvas()
+                row.add(inputfield)
+                row.grid(row=counter, column=0)
+            counter += 1
+        container.grid(row = 1, column = 0)
+        self.update()
+
     def check_all(self):
 
-        data = self.data.query(self.search_sequence, engine = 'python')
+        data = self.data.query(self.search_sequence, engine='python')
         self.selectedUsers.update(set(data['id'].values.tolist()))
         self.sort(self.sort_field)
 
@@ -1345,7 +1537,6 @@ class TableWidget(tk.Frame):
             if id in self.selectedUsers:
                 self.selectedUsers.remove(id)
         self.sort(self.sort_field)
-
 
     def delete_checked(self):
         self.data = self.data.query('not (id in @self.selectedUsers)')
@@ -1375,18 +1566,16 @@ class TableWidget(tk.Frame):
         self.init_header(self.fields)
         self.scrollList = ScrollList(self.horizontal_scrollbar, choosable=True, loadcolor='#91b0cf',
                                      pointerup=self.pointerup,
-                                     pointerdown=self.pointerdown, moved=self.moved, padding=(0, 0, 10, 0),
+                                     pointerdown=self.pointerdown, moved=self.moved, padding=(0, 0, 6, 0),
                                      w=self.w, h=self.h - self.header_height - self.inputfield.h,
                                      fillcolor='white', borderradius=0, textcolor='#224b79', item_height=20,
                                      item_padding=5, onclicked=self.item_clicked)
-        self.scrollList.pack(side = 'bottom', expand = True, fill = 'x')
+        self.scrollList.pack(side='bottom', expand=True, fill='x')
         self.horizontal_scrollbar.add_canvas(self.scrollList.canvas)
         self.horizontal_scrollbar.grid(column=0, row=1, columnspan=1, sticky='nsew')
 
-
     def getLambda(self, foo, arg):
         return lambda: foo(arg.encode().decode())
-
 
     def fill_scroll_lists(self, data, a=0, b=6):
         # a = max(a, 0)
@@ -1413,7 +1602,10 @@ class TableWidget(tk.Frame):
         #     return
 
         available_fields = []
+        if self.fields.__len__() == 0:
+            self.fields = data.columns
         for field in self.fields:
+
             if field in data.columns:
                 available_fields.append(field)
         if set(available_fields).difference(self.available_fields).__len__() > 0 or True:
@@ -1432,6 +1624,7 @@ class TableWidget(tk.Frame):
 
         # self.loadedIndexes = (min(self.loadedIndexes[0], a), max(self.loadedIndexes[1], b))
         self.loadedIndexes = (0, self.scrollList.buttons.__len__())
+        # self.init_header(self.available_fields)
         print('Filled ', self.loadedIndexes)
 
     def pointerdown(self, e):
@@ -1447,7 +1640,7 @@ class TableWidget(tk.Frame):
         visibleIndexes = self.scrollList.getVisibleIndexes()
         if self.loadedIndexes[1] < visibleIndexes[1] + 5 and self.loaded and not self.everything_loaded:
             self.loaded = False
-            self.init_load(self.loadedIndexes[1], self.loadedIndexes[1]+50)
+            self.init_load(self.loadedIndexes[1], self.loadedIndexes[1] + 50)
 
     def update_header(self):
         for button in self.header.widgets:
@@ -1472,10 +1665,9 @@ class TableWidget(tk.Frame):
     def resize(self, w, h, aw, ah):
         self.scale = (aw, ah)
         self.horizontal_scrollbar.resize(w, h, aw, ah)
-        self.input_row.resize(w, h/ah, aw, 1)
+        self.input_row.resize(w, h / ah, aw, 1)
         # self.inputfield.resize(w, h/ah, aw, 1)
-        self.scrollList.resize(w, h/ah, aw, 1, only_canvas = True)
-
+        self.scrollList.resize(w, h / ah, aw, 1, only_canvas=True)
         self.update()
 
     def setup_search(self, seq):
@@ -1484,17 +1676,18 @@ class TableWidget(tk.Frame):
             self.search_sequence = 'tuple()'
 
     def search(self, seq):
-        self.setup_search(seq.text)
+        self.setup_search(seq)
         self.scrollList.reset()
         self.everything_loaded = False
-        self.loadedIndexes = (0,0)
+        self.loadedIndexes = (0, 0)
         self.init_load(0, 50)
-        self.inputfield.empty_text = seq.text if seq.text != '' else 'Search:'
+        self.inputfield.empty_text = seq if seq != '' else 'Search:'
 
     def init_load(self, a, b):
         if self.load_thread:
             return
-        self.load_thread = thread = th.Thread(target=self.load_data, args=([self.sort_field, self.ascending, a, b]), daemon=True)
+        self.load_thread = thread = th.Thread(target=self.load_data, args=([self.sort_field, self.ascending, a, b]),
+                                              daemon=True)
         thread.start()
         self.loadCanvas = canvas = tk.Canvas(self, width=self.w, height=self.h - 30)
         canvas.configure(bg='#f1f0ec')
@@ -1514,6 +1707,8 @@ class TableWidget(tk.Frame):
             print(self.loadedIndexes)
             self.sorted_data = None
             self.load_thread = None
+            self.horizontal_scrollbar.xview('moveto', 0)
+            self.update()
         else:
             self.after(500, self.wait_for_load)
 
@@ -1521,16 +1716,26 @@ class TableWidget(tk.Frame):
         self.loaded = False
         if self.data.__len__() > 0:
             try:
-                d  = self.data.query(self.search_sequence, engine = 'python').sort_values(by=[field], ascending=ascending)
+                d = self.data.query(self.search_sequence, engine='python').sort_values(by=[field], ascending=ascending)
             except Exception as e:
                 print(e)
             else:
                 self.sorted_data = d[a:b]
                 self.fill_scroll_lists(self.sorted_data, a=a, b=b)
+                self.choosable_fields = {}
+                for column in self.data.columns:
+                    values = self.data[column]
+                    try:
+                        values = values.unique()
+                    except Exception as e:
+                        print(e)
+                    else:
+                        if values.__len__() < 5:
+                            self.choosable_fields[column] = values
+                            print(values)
                 if self.sorted_data.__len__() < b - a:
                     self.everything_loaded = True
         self.loaded = True
-
 
 
 class RuMap(tk.Frame):

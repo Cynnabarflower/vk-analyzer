@@ -721,11 +721,19 @@ class VkLoader:
         threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
         time.sleep(60 * 60)
         apis = [
+            vk_caller.VKFA('+79285474003','s.r.81104'),
             vk_caller.VKFA('+79886828338', 'EGUMES54')
         ]
         for api in apis:
             api.auth()
         threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
+        time.sleep(60 * 60)
+        apis = [
+            vk_caller.VKFA('89083004616', 'RTE34213421')
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda: self.load_groups(apis=apis)).start()
 
     def auth(self, tel='', pas=''):
         """
@@ -738,8 +746,8 @@ class VkLoader:
         :rtype:
         """
 
-        pas = '9841b7a33831ef01be43136501'
-        tel = '+79629884898'
+        # pas = '9841b7a33831ef01be43136501'
+        # tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_apis[self.current_acc] = vk_caller.VKFA(phone, passw)

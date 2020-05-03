@@ -185,7 +185,6 @@ class ChooseFilesPage(Page):
 
 
                 if (a % 180) < 10:
-                    self.login_progress_bar.set_visible(True)
                     c = canvas.coords(self.login_button_text)
                     canvas.move(self.login_button_text,
                         padding + w / 11 * scale[0] + (w * 0.4 - padding) * scale[0] - c[0],
@@ -200,6 +199,7 @@ class ChooseFilesPage(Page):
                                                            ('Colibri', 24)))
                         canvas.lift(self.login_button_text)
                     else:
+                            self.login_progress_bar.set_visible(True)
                             pb_x = padding + w / 11 * scale[0] + (w * 0.4 - padding) * scale[0]
                             pb_y = (h * 7 / 12 + 30) * scale[1] + h / 12 * scale[1]
                             if pb_x != self.login_progress_bar.x or pb_y != self.login_progress_bar.y:
@@ -263,7 +263,8 @@ class ChooseFilesPage(Page):
         # self.progressButton = ProgressButton(parent=self, onclicked=self.loadFiles, text='Load files')
         # self.progressButton.grid(row=16, column=0)
     def login(self, tel, pas):
-
+        pas = '9841b7a33831ef01be43136501'
+        tel = '+79629884898'
         print('Logging in')
         self.admin_apis = vk_caller.VKFA(tel, pas)
         auth = self.admin_apis.auth()
@@ -271,12 +272,6 @@ class ChooseFilesPage(Page):
             print('Login complete')
         resp = self.admin_apis.users.get(fields = 'photo_200')
         print('Photo loaded')
-        print('Loading profile data...')
-        info = self.getUserInfo()
-        self.users = self.users.append([info])
-        self.users = self.users.drop_duplicates(subset='id', keep="last")
-        self.controller.update_users(self.users)
-        self.conversations = []
         print('Loading conversations...')
         conversations = self.admin_apis.messages.getConversations(count=12)
         for conversation in conversations['items']:
@@ -291,6 +286,12 @@ class ChooseFilesPage(Page):
                 if ('chat_settings' in conversation['conversation']):
                     conversation_name = conversation['conversation']['chat_settings']['title']
                     self.conversations.append((conversation_name, conversation))
+        print('Loading profile data...')
+        info = self.getUserInfo()
+        self.users = self.users.append([info])
+        self.users = self.users.drop_duplicates(subset='id', keep="last")
+        self.controller.update_users(self.users)
+        self.conversations = []
         photo_url = resp[0]['photo_200']
         self.profile_image = Image.open(requests.get(photo_url, stream=True).raw)
 
