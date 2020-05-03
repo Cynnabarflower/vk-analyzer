@@ -126,7 +126,7 @@ class ScrollList(tk.Frame):
                                  choosable=self.choosable, borderradius=self.borderraadius,
                                  loadcolor=self.loadcolor, textcolor=self.textcolor)
             )
-            font = fit_text(self.item_width - 2, self.item_height - 2, element,
+            font = fit_text(self.item_width * 0.9 - 2, self.item_height * 0.9 - 2 , element,
                             (self.buttons[-1].font, self.buttons[-1].fontsize))
             self.buttons[-1].font = font[0]
             self.buttons[-1].fontsize = font[1]
@@ -400,7 +400,7 @@ class ScrollList(tk.Frame):
 
         else:
             for button in self.buttons:
-                if button.text == name:
+                if button.value == name:
                     button.set_progress(progress)
                     if text is not None:
                         button.set_text(button.value + text)
@@ -455,7 +455,7 @@ class ScrollListButton:
     def draw_text(self, canvas, x0, y0, x1, y1):
         canvas.create_text((x1 + x0) / 2, (y0 + y1) / 2, text=str(self.text),
                            fill=self.textcolor,
-                           font=(self.font, self.fontsize),
+                           font=fit_text((x1 - x0)*0.8, (y1 - y0) * 0.9, self.text, (self.font, self.fontsize)),
                            tag=self.tag + 'text')
 
     def chosen(self, chosen=None):
@@ -504,7 +504,7 @@ class WideScrollListButton(ScrollListButton):
         for text_item in self.text:
             canvas.create_text(x0 + step / 2, (y0 + y1) / 2, text=str(text_item),
                                fill=self.textcolor,
-                               font=fit_text(step - 2, y1 - y0 - 2, text_item, (self.font, self.fontsize)),
+                               font=fit_text(step * 0.9, (y1 - y0), str(text_item), (self.font, self.fontsize)),
                                tag=self.tag + 'text')
             x0 += step
 
@@ -622,6 +622,7 @@ class ProgressBar:
         self.id = str(id(self))
         self.progress = 0.75
         self.time = 0
+        self.visible = True
         self.working = True
         self.scale = (1, 1)
         self.fit_text()
@@ -630,6 +631,10 @@ class ProgressBar:
         self.canvas.create_polygon(ProgressBar.getcircle(x, y, r1, r2, 0), fill=self.color2, smooth=False,
                                    tag='inner_' + self.id)
         self.canvas.create_text(x, y, text='0', font=self.font, fill=color2, tag='progress_' + self.id)
+
+    def set_visible(self, visible):
+        self.visible = visible
+
 
     def fit_text(self):
         canvas = tk.Canvas()
@@ -652,26 +657,47 @@ class ProgressBar:
         if not self.working:
             self.canvas.delete('inner_' + self.id)
             self.canvas.itemconfigure('outer_' + self.id, state='hidden')
+            self.canvas.itemconfigure('progress_' + self.id, state = 'hidden')
             self.working = True
             return
-        self.canvas.itemconfigure('outer_' + self.id, state='normal')
+        if not self.visible:
+            self.canvas.itemconfigure('outer_' + self.id, state='hidden')
+            self.canvas.itemconfigure('progress_' + self.id, state = 'hidden')
+            self.canvas.itemconfigure('inner' + self.id, state='hidden')
+        else:
+            self.canvas.itemconfigure('outer_' + self.id, state='normal')
+            self.canvas.itemconfigure('progress_' + self.id, state = 'normal')
+            self.canvas.itemconfigure('inner' + self.id, state='normal')
+
         self.canvas.lift('outer_' + self.id)
         if progress >= 0:
-            self.canvas.delete('inner_' + self.id)
-            self.canvas.create_polygon(ProgressBar.getcircle(self.x, self.y, r1, r2, progress_to=progress),
-                                       fill=self.color2, smooth=True, tag='inner_' + self.id)
-            self.canvas.itemconfigure('progress_' + self.id, text=str(math.floor(progress * 100)))
+            if self.visible:
+                self.canvas.delete('inner_' + self.id)
+                self.canvas.create_polygon(ProgressBar.getcircle(self.x, self.y, r1, r2, progress_to=progress),
+                                           fill=self.color2, smooth=True, tag='inner_' + self.id)
+                self.canvas.itemconfigure('progress_' + self.id, text=str(math.floor(progress * 100)))
         else:
-            self.canvas.delete('inner_' + self.id)
             to = (self.progress + 0.1) / 5
-            for point in ProgressBar.getcircle(self.x, self.y, self.r1, self.r2, progress_from=self.progress / 5,
-                                               progress_to=to, width=0.1, step=0.1):
-                self.canvas.create_polygon(point, fill=self.color2, smooth=False,
-                                           tag='inner_' + self.id)
-            self.canvas.itemconfigure('progress_' + self.id, text=str(math.floor(self.time)))
+            if self.visible:
+                self.canvas.delete('inner_' + self.id)
+                for point in ProgressBar.getcircle(self.x, self.y, self.r1, self.r2, progress_from=self.progress / 5,
+                                                   progress_to=to, width=0.1, step=0.1):
+                    self.canvas.create_polygon(point, fill=self.color2, smooth=False,
+                                               tag='inner_' + self.id)
+                self.canvas.itemconfigure('progress_' + self.id, text=str(math.floor(self.time)))
             self.progress = (self.progress + 0.1) % 10
             self.time += 0.1
             self.controller.after(100, self.drawprogress)
+
+    def move(self, x, y):
+        self.canvas.move('progress_' + self.id, x - self.x, y - self.y)
+        self.canvas.delete('outer_'+self.id)
+        self.x = x
+        self.y = y
+        self.points1 = ProgressBar.getcircle(x, y, self.r1, self.r2, progress_from=0, progress_to=1, width=6.283 / 360,
+                                             step=6.283 / 360)
+        for point in self.points1:
+            self.canvas.create_polygon(point, fill=self.color1, smooth=True, tag='outer_' + self.id)
 
     @staticmethod
     def getcircle(x, y, r1, r2, progress_from=0, progress_to=1, width=0.0875, step=0.0875):
@@ -807,6 +833,41 @@ class SimpleButton(tk.Frame):
         self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
                                 fill=self.textcolor, font=self.font)
 
+class FloatingButton(SimpleButton):
+    def __init__(self, canvas, x, y, w, h, radius = 25, text = '', icon = None, onclicked = None, textcolor='#ffffff',
+                 fillcolor="#4978a6", loadcolor='#224b79', borderradius=18, font=("Colibri", 25)):
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.radius = radius
+        self.text = text
+        self.onclicked = onclicked
+        self.textcolor = textcolor
+        self.fillcolor = fillcolor
+        self.loadcolor = loadcolor
+        self.borderradius = borderradius
+        self.icon = icon
+        self.font = font
+        self.tag = 'floating_button_'+ str(id(self))
+        self.scale = (1,1)
+
+    def initcanvas(self):
+        self.canvas.delete(self.id)
+        rrp = round_rectangle_points(self.padding * self.scale[0], self.padding * self.scale[1],
+                                     (self.w) * self.scale[0], (self.h) * self.scale[1],
+                                     radius=self.borderradius)
+        self.canvas.create_polygon(rrp, outline=color, fill=color, smooth=True, tag = self.tag)
+        if self.icon is not None:
+            if self.text == '':
+                self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
+                                         anchor='center', tag = self.tag)
+            else:
+                self.canvas.create_image(self.w * self.scale[0] / 5, self.h * self.scale[1] / 2, image=self.icon,
+                                         anchor='center', tag = self.tag)
+        self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
+                                fill=self.textcolor, font=self.font)
 
 def round_rectangle(canvas, x1, y1, x2, y2, radius=25, radius1=None, radius2=None, radius3=None, radius4=None,
                     **kwargs):
@@ -1064,6 +1125,10 @@ class RotatingCard(tk.Frame):
         if not change_page and self.clicked:
             self.clicked(e, self.userscanvas, self.w, self.h, self.padding, self.scale, (self.a % 360) * math.pi / 180)
 
+    def updatecanvas(self):
+        self.rotate(self.a)
+        self.update()
+
     def rotate(self, to):
         self.userscanvas.delete('rr')
         self.userscanvas.delete('img')
@@ -1099,7 +1164,7 @@ class RotatingCard(tk.Frame):
 
         if self.a != to:
             self.a = (self.a + 5) % 360
-            self.after(40, lambda: self.rotate(to))
+            self.after(16, lambda: self.rotate(to))
 
 
 class Wrap(tk.Frame):
@@ -1285,7 +1350,7 @@ class TableWidget(tk.Frame):
     def delete_checked(self):
         self.data = self.data.query('not (id in @self.selectedUsers)')
         if self.data_changed:
-            self.data_changed()
+            self.data_changed(self.data)
         self.sort(self.sort_field)
 
     def init_header(self, fields):
@@ -1311,7 +1376,7 @@ class TableWidget(tk.Frame):
         self.scrollList = ScrollList(self.horizontal_scrollbar, choosable=True, loadcolor='#91b0cf',
                                      pointerup=self.pointerup,
                                      pointerdown=self.pointerdown, moved=self.moved, padding=(0, 0, 10, 0),
-                                     w=self.w, h=self.h,
+                                     w=self.w, h=self.h - self.header_height - self.inputfield.h,
                                      fillcolor='white', borderradius=0, textcolor='#224b79', item_height=20,
                                      item_padding=5, onclicked=self.item_clicked)
         self.scrollList.pack(side = 'bottom', expand = True, fill = 'x')
@@ -1370,6 +1435,7 @@ class TableWidget(tk.Frame):
         print('Filled ', self.loadedIndexes)
 
     def pointerdown(self, e):
+        self.inputfield.in_focus = False
         self.scrollList.pointerdown(e)
 
     def pointerup(self, e):
@@ -1423,6 +1489,7 @@ class TableWidget(tk.Frame):
         self.everything_loaded = False
         self.loadedIndexes = (0,0)
         self.init_load(0, 50)
+        self.inputfield.empty_text = seq.text if seq.text != '' else 'Search:'
 
     def init_load(self, a, b):
         if self.load_thread:
@@ -1524,6 +1591,8 @@ class RuMap(tk.Frame):
             self.minreg = min(self.minreg, regions[reg])
             self.maxreg = max(self.maxreg, regions[reg])
 
+        if self.minreg == self.maxreg:
+            self.maxreg += 1
         # if regions.__len__() > 0:
         #     for reg in regions:
         #         self.scrollList.setProgress(name=reg.replace('RU-', ''), progress=self.regions[reg] / self.maxreg * 0.9,

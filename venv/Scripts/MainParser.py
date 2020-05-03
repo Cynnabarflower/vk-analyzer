@@ -290,7 +290,7 @@ class VkLoader:
                 friend['scan_time'] = c_time
                 dictOfFriends.update({friend['id'] if 'id' in friend else friend: friend})
 
-        print(depth, ' got: ', len(dictOfFriends))
+        print(depth, ' got: ', len(dictOfFriends), self.getTime())
         if depth > 0:
             time.sleep(self.SMALL_SLEEP_TIME)
             for friend in friends['items']:
@@ -738,8 +738,8 @@ class VkLoader:
         :rtype:
         """
 
-        # pas = '9841b7a33831ef01'
-        # tel = '+79629884898'
+        pas = '9841b7a33831ef01be43136501'
+        tel = '+79629884898'
         phone = tel if tel else input('phone:')
         passw = pas if pas else input('pass:')  # 9841b7a33831ef01
         self.admin_apis[self.current_acc] = vk_caller.VKFA(phone, passw)
@@ -819,15 +819,18 @@ class VkLoader:
             print(reg)
             for id in ids:
                 if id and id.isdigit():
-                    loaded_users = self.getFromGroup(group_name=id, user_fields='last_seen', apis=apis)
-                    counter  = 1
-                    for loaded_users_chunk in loaded_users:
-                        self.saveToFile(
-                            obj=loaded_users_chunk,
-                            name='RU-' + reg + '_' + id + '_' + str(counter))
-                        counter += 1
-                    loaded_users = None
-                    loaded_users_chunk = None
+                    try:
+                        loaded_users = self.getFromGroup(group_name=id, user_fields='last_seen', apis=apis)
+                        counter  = 1
+                        for loaded_users_chunk in loaded_users:
+                            self.saveToFile(
+                                obj=loaded_users_chunk,
+                                name='RU-' + reg + '_' + id + '_' + str(counter))
+                            counter += 1
+                        loaded_users = None
+                        loaded_users_chunk = None
+                    except Exception as e:
+                        print(e)
 
     def tkMenu(self):
         """

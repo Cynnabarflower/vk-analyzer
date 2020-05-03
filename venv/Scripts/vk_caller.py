@@ -5,6 +5,20 @@ import json
 import random
 import time
 
+VK_ERRORS = {
+		1: {'name': 'Unknown error occurred'},
+		7: {'name': 'Permission to perform this action is denied'},
+		15: {'name': 'Access denied'},
+		18: {'name': 'User was deleted or banned'},
+		30: {'name': 'This profile is private'},
+		200: {'name': 'Access to album denied'},
+		201: {'name': 'Access to audio denied'},
+		203: {'name': 'Access to group denied'},
+		917: {'name': 'You don\'t have access to this chat'},
+		936: {'name': 'Contact not found'},
+		927: {'name': 'Chat does not exist'},
+		29: {'name': 'Rate limit reached'}
+	}
 
 class VKFA:
 

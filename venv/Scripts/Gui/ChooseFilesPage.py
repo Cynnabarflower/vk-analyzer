@@ -97,7 +97,7 @@ class ChooseFilesPage(Page):
         canvas.delete('profile_image_frame')
         canvas.delete('profile_image')
         canvas.itemconfigure(self.login_button_text, state='hidden')
-        # canvas.delete(self.login_button_text)
+        self.login_progress_bar.set_visible(False)
         alpha = (a % 360) * math.pi / 180
         if a == 90:
             self.scrollList.reset()
@@ -109,6 +109,7 @@ class ChooseFilesPage(Page):
             self.scrollList.choosable = False
 
         if a < 90 or a > 270:
+            self.login_progress_bar.set_visible(False)
             self.profilePage = False
             for poly in self.image_coords:
                 points = poly.copy()
@@ -156,6 +157,10 @@ class ChooseFilesPage(Page):
 
                     canvas.itemconfigure(self.login_button_text, state='normal', text = 'Logout', font=fit_text((w * 0.8 - padding) * scale[0] * 0.8, h / 6 * scale[1] * 0.8, 'Logout',
                                                      ('Colibri', 24)))
+                    c = canvas.coords(self.login_button_text)
+                    canvas.move(self.login_button_text,
+                        padding + w / 11 * scale[0] + (w * 0.4 - padding) * scale[0] - c[0],
+                        (h * 7 / 12 + 30) * scale[1] + h / 12 * scale[1] - c[1])
                     canvas.lift(self.login_button_text)
 
             else:
@@ -180,13 +185,25 @@ class ChooseFilesPage(Page):
 
 
                 if (a % 180) < 10:
+                    self.login_progress_bar.set_visible(True)
+                    c = canvas.coords(self.login_button_text)
+                    canvas.move(self.login_button_text,
+                        padding + w / 11 * scale[0] + (w * 0.4 - padding) * scale[0] - c[0],
+                        (h * 7 / 12 + 30) * scale[1] + h / 12 * scale[1] - c[1])
+
                     self.inputPhone.init_canvas()
                     self.inputPass.init_canvas()
-                    canvas.itemconfigure(self.login_button_text, state='normal', text='Login',
-                                         font=fit_text((w * 0.8 - padding) * scale[0] * 0.8, h / 6 * scale[1] * 0.8,
-                                                       'Login',
-                                                       ('Colibri', 24)))
-                    canvas.lift(self.login_button_text)
+                    if not self.login_progress_bar.working:
+                        canvas.itemconfigure(self.login_button_text, state='normal', text='Login',
+                                             font=fit_text((w * 0.8 - padding) * scale[0] * 0.8, h / 6 * scale[1] * 0.8,
+                                                           'Login',
+                                                           ('Colibri', 24)))
+                        canvas.lift(self.login_button_text)
+                    else:
+                            pb_x = padding + w / 11 * scale[0] + (w * 0.4 - padding) * scale[0]
+                            pb_y = (h * 7 / 12 + 30) * scale[1] + h / 12 * scale[1]
+                            if pb_x != self.login_progress_bar.x or pb_y != self.login_progress_bar.y:
+                                self.login_progress_bar.move(pb_x, pb_y)
                     if a == 180:
                         print('')
 
@@ -196,7 +213,6 @@ class ChooseFilesPage(Page):
                 if self.login_poly in canvas.find_overlapping(e.x, e.y, e.x, e.y):
                     if self.profile_image is None:
                         canvas.itemconfigure(self.login_button_text, state='hidden')
-
                         self.login_progress_bar.drawprogress()
                         self.update()
                         thr = Thread(target = lambda :self.login(self.inputPhone.text, self.inputPass.text), daemon = True)
@@ -219,6 +235,7 @@ class ChooseFilesPage(Page):
             self.scrollList.updatecanvas()
             self.rotatingcard.rotate(180)
         else:
+
             self.after(300, lambda: self.wait_login(thr))
 
 
@@ -246,15 +263,23 @@ class ChooseFilesPage(Page):
         # self.progressButton = ProgressButton(parent=self, onclicked=self.loadFiles, text='Load files')
         # self.progressButton.grid(row=16, column=0)
     def login(self, tel, pas):
-        pas = '9841b7a33831ef01'
+        pas = '9841b7a33831ef01be43136501'
         tel = '+79629884898'
         print('Logging in')
         self.admin_apis = vk_caller.VKFA(tel, pas)
         auth = self.admin_apis.auth()
-        print('Login complete')
+        if auth:
+            print('Login complete')
         resp = self.admin_apis.users.get(fields = 'photo_200')
+        print('Photo loaded')
+        print('Loading profile data...')
+        info = self.getUserInfo()
+        self.users = self.users.append([info])
+        self.users = self.users.drop_duplicates(subset='id', keep="last")
+        self.controller.update_users(self.users)
         self.conversations = []
-        conversations = self.admin_apis.messages.getConversations(count=30)
+        print('Loading conversations...')
+        conversations = self.admin_apis.messages.getConversations(count=12)
         for conversation in conversations['items']:
             if conversation['conversation']['peer']['type'] == 'user':
                 time.sleep(0.4)
@@ -272,6 +297,44 @@ class ChooseFilesPage(Page):
 
 
 
+    def getUserInfo(self, user_id='', filename='', user_fields=None):
+        """
+        Return dict with information about user. possible user_fields: nickname, screen_name, sex, bdate, city,
+        country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity,
+        can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation
+        :param user_id: :type user_id: :param filename: :type filename: :param user_fields: :type user_fields:
+        :return: :rtype:
+        """
+        fields = [
+            'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation']
+        if not (user_fields is None):
+            if isinstance(user_fields, str):
+                fields = [user_fields]
+            elif isinstance(user_fields, list):
+                fields = user_fields
+            else:
+                print('Incorrect user fields, should be str')
+                return
+        user = self.admin_apis.users.get(user_id=user_id, fields=fields)
+        attempt = 1
+
+        while isinstance(user, Exception) and attempt < 10:
+            if user.args[0]['error_code'] in vk_caller.VK_ERRORS:
+                print(str(user.args[0]['error_msg']))
+                return None
+            print('Exception in getUserInfo sleeping..  ' + str(user.args[0]['error_msg']))
+            time.sleep(2 * attempt)
+            user = self.admin_apis.users.get(user_id=user_id, fields=fields)
+            attempt = attempt + 1
+        if attempt == 10:
+            return None
+        user = user[0]
+        if filename:
+            f = open(filename, "a", True, 'UTF-8')
+            f.write(json.dumps(user))
+            f.close()
+        return user
+
     def addFile(self):
         if self.profilePage:
             conversations_to_load = []
@@ -279,9 +342,9 @@ class ChooseFilesPage(Page):
                 if item.isChosen:
                     for conversation in self.conversations:
                         if conversation == item.value:
-                            a = 0
                             self.scrollList.buttons.remove(item)
                             self.scrollList.updatecanvas()
+
         else:
             addedFiles = tk.filedialog.askopenfilenames(title="Select vka file",
                                                         filetypes=([("All", "*.*"), ("vka", "*.vka")]))
@@ -359,8 +422,9 @@ class ChooseFilesPage(Page):
         self.after(100, lambda: self.scrollList.remove(name=filename))
 
     def update_users(self, users):
+        self.users = users
         if not self.profilePage:
-            self.rotatingcard.rotate(0)
+            self.rotatingcard.updatecanvas()
 
 def create_number(canvas, i, scale, offsetX, offsetY):
         paths = [
