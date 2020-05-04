@@ -62,7 +62,7 @@ class VkLoader:
         :param name:
         :return:
         """
-        trash = ',.<>«»?!@:;#$%^&*/\\~`\'\"'
+        trash = ',.<>«»?!@:;#$%^&*/\\~`\'\"|'
         filename = name
         for char in trash:
             filename = filename.replace(char, "")
