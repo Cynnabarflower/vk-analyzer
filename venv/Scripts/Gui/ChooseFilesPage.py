@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 import requests
 import time
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class ChooseFilesPage(Page):
@@ -211,18 +212,21 @@ class ChooseFilesPage(Page):
         if a > 3.1415/2 and a < 3.1415 * 1.5:
             if not max(self.inputPhone.clicked(e), self.inputPass.clicked(e)):
                 if self.login_poly in canvas.find_overlapping(e.x, e.y, e.x, e.y):
-                    if self.profile_image is None:
-                        canvas.itemconfigure(self.login_button_text, state='hidden')
-                        self.login_progress_bar.drawprogress()
-                        self.update()
-                        thr = Thread(target = lambda :self.login(self.inputPhone.text, self.inputPass.text), daemon = True)
-                        thr.start()
-                        self.wait_login(thr)
-                    else:
-                        self.profile_image = None
-                        self.profile_image_scaled = None
-                        self.rotatingcard.rotate(180)
-                    # self.login(self.inputPhone.text, self.inputPass.text)
+                    if not self.login_progress_bar.working:
+                        if self.profile_image is None:
+                            canvas.itemconfigure(self.login_button_text, state='hidden')
+
+                            self.login_progress_bar.working = True
+                            self.login_progress_bar.drawprogress()
+                            self.update()
+                            thr = Thread(target = lambda :self.login(self.inputPhone.text, self.inputPass.text), daemon = True)
+                            thr.start()
+                            self.wait_login(thr)
+                        else:
+                            self.profile_image = None
+                            self.profile_image_scaled = None
+                            self.rotatingcard.rotate(180)
+                        # self.login(self.inputPhone.text, self.inputPass.text)
 
     def wait_login(self, thr):
         if self.profile_image:
@@ -425,6 +429,13 @@ class ChooseFilesPage(Page):
         self.users = users
         if not self.profilePage:
             self.rotatingcard.updatecanvas()
+
+        id_name = self.users[['id', 'first_name']].head(200)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        id_name.boxplot()
+        # id_name.plot(x = 'first_name', y = 'sex', ax = ax, kind='line', figsize = (4, 4), legend=False)
+        plt.show()
 
 def create_number(canvas, i, scale, offsetX, offsetY):
         paths = [

@@ -28,6 +28,7 @@ class Gui(tk.Tk):
         self.width = 0
         self.timer = None
         self.height = 0
+        self.users = None
         self.initUI()
 
     def initUI(self):
@@ -136,6 +137,9 @@ class Gui(tk.Tk):
         self.quit()
 
     def update_users(self, users):
-        self.pages[0].update_users(users)
-        self.pages[1].update_users(users)
-        self.pages[2].update_users(users)
+        for page in self.pages:
+            page.update_users(users)
+        self.users = users
+
+    def get_users(self):
+        return self.users

@@ -834,14 +834,14 @@ class SimpleButton(tk.Frame):
                 self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
                                          anchor='center')
             else:
-                self.canvas.create_image(self.w * self.scale[0] / 5, self.h * self.scale[1] / 2, image=self.icon,
+                self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
                                          anchor='center')
         self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
                                 fill=self.textcolor, font=self.font)
 
 
 class RadioButton(tk.Frame):
-    def __init__(self, parent, header_template=None, child_template=None, can_choose_multiple=False):
+    def __init__(self, parent, header_template=None, child_template=None, can_choose_multiple=False, onclicked=None):
         tk.Frame.__init__(self, parent)
         self.scale = (1, 1)
         self.header = None
@@ -849,6 +849,7 @@ class RadioButton(tk.Frame):
         self.can_choose_multiple = can_choose_multiple
         self.chosenButtons = []
         self.chosen_values = []
+        self.onclicked = onclicked
 
         if header_template or child_template:
             if header_template and not child_template:
@@ -908,6 +909,8 @@ class RadioButton(tk.Frame):
                 self.chosenButtons.append(button)
             else:
                 self.chosenButtons.remove(button)
+        if self.onclicked:
+            self.onclicked(self.get_selected())
 
     def get_selected(self):
         values = []
@@ -1291,6 +1294,15 @@ class Note(tk.Frame):
         # for w in widgets:
         #      # w.grid(column = 0, row = 0)
 
+    def remove(self, page):
+        if isinstance(page, int):
+            del self.pages[page]
+        else:
+            for i in range(self.pages.__len__()):
+                if self.pages[i] == page:
+                    self.pages.remove(page)
+                    break
+
     def select(self, page=None, previous=False, next=False):
 
         if self.current_index > -1:
@@ -1427,7 +1439,7 @@ class TableWidget(tk.Frame):
                                       onclicked=self.delete_checked, padding=5)
         self.input_row.add(delete_checked)
         show_settings = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text=chr(9881),
-                                      onclicked=self.show_settings, padding=5, fixed=True)
+                                     onclicked=self.show_settings, padding=5, fixed=True)
         self.input_row.add(show_settings)
         self.input_row.grid(row=0, column=0, sticky='n')
         # inputfield.grid(row=0, column=0, sticky='n')
@@ -1464,15 +1476,14 @@ class TableWidget(tk.Frame):
         self.settings_container = None
         self.search(self.search_sequence)
 
-
     def show_settings(self):
-        w = self.w * 2/3 * self.scale[0]
-        h = self.h * 2/3 * self.scale[1]
+        w = self.w * 2 / 3 * self.scale[0]
+        h = self.h * 2 / 3 * self.scale[1]
         if self.settings_container:
             self.settings_container.grid_forget()
             self.scrollList.textcolor = '#224b79'
             self.search_sequence = ''
-            th.Thread(target= lambda: self.make_search_sequence(), daemon=True).start()
+            th.Thread(target=lambda: self.make_search_sequence(), daemon=True).start()
             for button in self.scrollList.buttons:
                 button.textcolor = self.scrollList.textcolor
                 button.needsupdate = True
@@ -1486,13 +1497,15 @@ class TableWidget(tk.Frame):
             button.needsupdate = True
         # self.scrollList.initcanvas()
         self.scrollList.updatecanvas()
-        self.settings_container = container = tk.Frame(self, highlightbackground = "#4978a6", highlightcolor= "#4978a6", highlightthickness = 5)
-        header_template = SimpleButton(self, text='ht', w=w/4, h=h/self.fields.__len__(), borderradius=0, padding=2, fillcolor='#4978a6')
-        child_template = SimpleButton(self, text='ht', w=60, h=h/self.fields.__len__(), borderradius=4, padding=4)
+        self.settings_container = container = tk.Frame(self, highlightbackground="#4978a6", highlightcolor="#4978a6",
+                                                       highlightthickness=5)
+        header_template = SimpleButton(self, text='ht', w=w / 4, h=h / self.fields.__len__(), borderradius=0, padding=2,
+                                       fillcolor='#4978a6')
+        child_template = SimpleButton(self, text='ht', w=60, h=h / self.fields.__len__(), borderradius=4, padding=4)
         counter = 0
         for field in self.available_fields:
             if field in self.choosable_fields:
-                child_template.w = (w - header_template.w)/self.choosable_fields[field].__len__()
+                child_template.w = (w - header_template.w) / self.choosable_fields[field].__len__()
                 rb = RadioButton(container, header_template=header_template, child_template=child_template,
                                  can_choose_multiple=True)
                 rb.set_header(field)
@@ -1520,7 +1533,7 @@ class TableWidget(tk.Frame):
                 row.add(inputfield)
                 row.grid(row=counter, column=0)
             counter += 1
-        container.grid(row = 1, column = 0)
+        container.grid(row=1, column=0)
         self.update()
 
     def check_all(self):
@@ -1548,11 +1561,17 @@ class TableWidget(tk.Frame):
         if self.header:
             self.header.pack_forget()
             self.horizontal_scrollbar.remove_scrollableframe(self.header)
-        self.header = row = Row(self.horizontal_scrollbar.get_scrollableframe(height=self.header_height))
+        self.header = row = RadioButton(self.horizontal_scrollbar.get_scrollableframe(height=self.header_height),
+                                        child_template=SimpleButton(self,
+                                                                    w=round(self.w / self.columns_on_screen),
+                                                                    h=self.header_height,
+                                                                    borderradius=0, padding=0),
+                                        onclicked=lambda a: self.sort(a[0]))
         for field in fields:
-            row.add(SimpleButton(row, text=field, w=round(self.w / self.columns_on_screen), h=self.header_height,
-                                 borderradius=0, padding=0,
-                                 onclicked=self.getLambda(self.sort, field)))
+            row.add_value(field)
+            # row.add(SimpleButton(row, text=field, w=round(self.w / self.columns_on_screen), h=self.header_height,
+            #                      borderradius=0, padding=0,
+            #                      onclicked=self.getLambda(self.sort, field)))
         row.pack()
 
     def item_clicked(self, item):
@@ -1643,7 +1662,7 @@ class TableWidget(tk.Frame):
             self.init_load(self.loadedIndexes[1], self.loadedIndexes[1] + 50)
 
     def update_header(self):
-        for button in self.header.widgets:
+        for button in self.header.values:
             if button.text == self.sort_field or button.text[:-1] == self.sort_field:
                 button.text = self.sort_field + ('↑' if self.ascending else '↓')
                 button.updatecanvas()
@@ -1652,6 +1671,8 @@ class TableWidget(tk.Frame):
                 button.updatecanvas()
 
     def setup_sort(self, field):
+        if field.endswith('↓') or field.endswith('↑'):
+            field = field[:-1]
         self.sort_field = field
         self.ascending = not self.ascending
 
@@ -1692,6 +1713,7 @@ class TableWidget(tk.Frame):
         self.loadCanvas = canvas = tk.Canvas(self, width=self.w, height=self.h - 30)
         canvas.configure(bg='#f1f0ec')
         self.progressBar = ProgressBar(self, canvas, 550 / 2, 400 / 2, 40, 60, '#91b0cf', '#224b79')
+        self.progressBar.working = True
         self.progressBar.drawprogress()
         canvas.grid(column=0, row=1, columnspan=1, sticky='nsew')
         self.wait_for_load()

@@ -706,34 +706,25 @@ class VkLoader:
     def init_load_groups(self):
 
         apis = [
-            vk_caller.VKFA('+77053909746', '123456zxcvb'),
-            vk_caller.VKFA('+79091758992','evolom08ASDfghjkl')
-        ]
-        for api in apis:
-            api.auth()
-        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
-        time.sleep(60*60)
-        apis = [
-            vk_caller.VKFA('crazytuner@freenet.de','oberhase64'),
-        ]
-        for api in apis:
-            api.auth()
-        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
-        time.sleep(60 * 60)
-        apis = [
-            vk_caller.VKFA('+79285474003','s.r.81104'),
-            vk_caller.VKFA('+79886828338', 'EGUMES54')
-        ]
-        for api in apis:
-            api.auth()
-        threading.Thread(target=lambda :self.load_groups(apis = apis)).start()
-        time.sleep(60 * 60)
-        apis = [
             vk_caller.VKFA('89083004616', 'RTE34213421')
         ]
         for api in apis:
             api.auth()
-        threading.Thread(target=lambda: self.load_groups(apis=apis)).start()
+        threading.Thread(target=lambda: self.load_groups(apis=apis), daemon=True).start()
+        time.sleep(60 * 30)
+        apis = [
+            vk_caller.VKFA('89056450309', 'ratatyi2020')
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda: self.load_groups(apis=apis), daemon= True).start()
+        time.sleep(60 * 30)
+        apis = [
+            vk_caller.VKFA('89872301490', '@12345@kamilla')
+        ]
+        for api in apis:
+            api.auth()
+        threading.Thread(target=lambda: self.load_groups(apis=apis), daemon=True).start()
 
     def auth(self, tel='', pas=''):
         """

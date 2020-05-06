@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 
-def build_moustache(dframe, qual, quant):
+def build_moustache(dframe, qual, quant, show_axes = True):
     """
     Maidzhe Alexandra
     Creates a dictionary with qualitative data as keys
@@ -14,6 +14,7 @@ def build_moustache(dframe, qual, quant):
     :param quant: quantitative data
     :return: figure
     """
+
     dc = {} #initialaizing the dictionary
     for i in range(0, len(dframe[qual])):
         k = [] #initializing the auxilary array to create the dictionary

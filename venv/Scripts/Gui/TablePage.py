@@ -20,8 +20,7 @@ class TablePage(Page):
         self.table.forget()
         self.table = TableWidget(self, data = data, w = 550, h = 400, data_changed = lambda users: self.controller.update_users(users), fields =fields)
         self.table.grid(column = 0, row = 0, sticky='nsew')
-        if data.__len__() > 0:
-            mg.show_moustache(data, data['first_name'], data['id'])
+
 
 
 
