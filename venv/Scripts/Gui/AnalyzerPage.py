@@ -128,11 +128,12 @@ class AnalyzerPage(Page):
         self.navigationNote.resize(w, h, aw, ah, all=True)
 
     def show_plot(self):
-        frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height=550)
-        self.note.add(frame)
-        frame.configure(background=Gui.background_color, bd=-2)
-        self._Page3(frame, self.controller)
-        self.plot()
+        if self.controller.get_users():
+            frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height=550)
+            self.note.add(frame)
+            frame.configure(background=Gui.background_color, bd=-2)
+            self._Page3(frame, self.controller)
+            self.plot()
 
     def plot (self):
         print('')
