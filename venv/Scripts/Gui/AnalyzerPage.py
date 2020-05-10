@@ -8,6 +8,7 @@ matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from threading import Thread
 
 
 class AnalyzerPage(Page):
@@ -79,8 +80,8 @@ class AnalyzerPage(Page):
         frame.configure(background=Gui.background_color, bd=-2)
         self.navigationNote.add(frame)
         SimpleButton(parent=frame, text="Back",
-                     onclicked=lambda: self.note.remove(self.note.pages.__len__() - 1) or self.note.select(
-                         previous=True) or self.navigationNote.select(
+                     onclicked=lambda: self.note.select(
+                         previous=True) or self.note.remove(self.note.pages.__len__() - 1) or self.navigationNote.select(
                          1) or self.note.current_index == 0 and self.navigationNote.select(0), w=550, h=57,
                      padding=5).grid(row=5, column=0)
 
@@ -209,31 +210,46 @@ class AnalyzerPage(Page):
             for graph in graphs:
                 # self.get_clickable_canvas(535/4, 535/4, lambda: None)
                 fig = self.get_plot(self.controller.get_users().head(40))
+                self.fig = None
                 fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-                c = SimpleButton(self.frame, onclicked = lambda b: self.show_graph(b.text), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
+                c = SimpleButton(self.frame, onclicked = lambda b: self.init_show_graph(b.text), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
                 self.canvases.append(c)
                 c.grid(row=t // 4, column= t % 4)
                 t += 1
 
-        def show_graph(self, name):
-            print('')
+        def init_show_graph(self, name):
+            self.fig = None
+            Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
+            self.wait_plot()
 
 
-        def get_plot(self, data):
-            fig = Figure(figsize=(1, 1))
-            # a = fig.add_subplot(111)
-            fig = data.plot(kind='bar', figsize = (1,1), legend = False, use_index = False)
-            fig.axes('off')
-            # a.scatter(v, x, color='red')
-            # a.plot(p, range(2 + max(x)), color='blue')
-            # a.axis('off')
+        def set_fig(self, fig):
+            self.fig = fig
 
-            # a.invert_yaxis()
-            fig.subplots_adjust(wspace=0, hspace=0)
-            fig.set_facecolor('#91b0cf')
-            # a.set_title ("Estimation Grid", fontsize=16)
-            # a.set_ylabel("Y", fontsize=14)
-            # a.set_xlabel("X", fontsize=14)
+        def wait_plot(self):
+            if self.fig:
+                matplotlib.pyplot.show()
+            else:
+                self.controller.after(500, self.wait_plot)
+
+        def get_plot(self, data, lat = 1, long = 1, show_axes = False):
+            import moustache_graph
+            fig = moustache_graph.moustache(data, 'first_name', 'id', lat=lat, long=long, show_axes = show_axes)
+            # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
+            # fig = Figure(figsize=(1, 1))
+            # # a = fig.add_subplot(111)
+            # fig = data.plot(kind='bar', figsize = (1,1), legend = False, use_index = False)
+            # # fig.axes('off')
+            # # a.scatter(v, x, color='red')
+            # # a.plot(p, range(2 + max(x)), color='blue')
+            # # a.axis('off')
+            #
+            # # a.invert_yaxis()
+            # fig.subplots_adjust(wspace=0, hspace=0)
+            # fig.set_facecolor('#91b0cf')
+            # # a.set_title ("Estimation Grid", fontsize=16)
+            # # a.set_ylabel("Y", fontsize=14)
+            # # a.set_xlabel("X", fontsize=14)
             return fig
 
         # def get_clickable_canvas(self, w, h, onclicked):

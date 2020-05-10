@@ -12,6 +12,7 @@ import requests
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import moustache_graph
 
 
 class ChooseFilesPage(Page):
@@ -366,6 +367,7 @@ class ChooseFilesPage(Page):
 
 
 
+
     def load_files_launch(self):
         q = Queue()
         Thread(target=self.loadFiles, args=[q], daemon=True).start()
@@ -430,12 +432,12 @@ class ChooseFilesPage(Page):
         if not self.profilePage:
             self.rotatingcard.updatecanvas()
 
-        id_name = self.users[['id', 'first_name']].head(200)
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        id_name.boxplot()
-        # id_name.plot(x = 'first_name', y = 'sex', ax = ax, kind='line', figsize = (4, 4), legend=False)
-        plt.show()
+        # id_name = self.users[['id', 'first_name']].head(200)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111)
+        # id_name.boxplot()
+        # # id_name.plot(x = 'first_name', y = 'sex', ax = ax, kind='line', figsize = (4, 4), legend=False)
+        # plt.show()
 
 def create_number(canvas, i, scale, offsetX, offsetY):
         paths = [

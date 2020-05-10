@@ -1329,7 +1329,6 @@ class Note(tk.Frame):
         elif hasattr(self.pages[self.current_index], 'resize'):
             self.pages[self.current_index].resize(w, h, aw, ah)
 
-
 class ScrollableFrame(tk.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
@@ -1472,9 +1471,68 @@ class TableWidget(tk.Frame):
                         self.search_sequence += field + '==' + str(value) + ' or '
                     self.search_sequence = self.search_sequence[:-3] + ')'
         self.inputfield.text = self.search_sequence
+        self.search_sequence = self.format_sequence(self.search_sequence)
         self.inputfield.update_text()
         self.settings_container = None
         self.search(self.search_sequence)
+
+    def format_sequence(self, sequence):
+
+        result = []
+        current_field = ''
+        operators = [
+            '>=', '<=', '==', '=',
+            '&&', ','
+            '||',
+            '//',
+            '%',
+            '\+', '\-', '\*', '\/',
+        ]
+        fields = {}
+        # 0 - expect var, 1 - expect compare or op, 2 - expect op or separator
+        step = 0
+        seq_list = list(filter(lambda a: a is not None and a != '' and a != ' ', re.split('|'.join(operators),sequence)))
+        for op in seq_list:
+            if op == '>=' or op == '<=' or op == '>' or op == '<' or op == '==' or op == '=':
+                if step == 1:
+                    step = 2
+                    result.append(op)
+                else:
+                    result = None
+                    break
+            if op == '&&' or op == ' and ' or op == 'и' or op == ',':
+                if step == 2:
+                    result.append(' and ')
+                else:
+                    result = None
+                    break
+            elif op == '||' or op == ' or ' or op == 'или':
+                if step == 2:
+                    result.append(' or ')
+                result = None
+                break
+            elif op == 'in' or op == 'в':
+                if got_op:
+                    continue
+                result += ' in '
+            elif op == ' div ' or op == '//':
+                if got_op:
+                    continue
+                result.append(' // ')
+            elif op == ' mod ' or op == '%':
+                if got_op:
+                    continue
+                result.append(' % ')
+            elif op == '+' or op == '-' or op == '*' or op == '/':
+                if got_op:
+                    continue
+                result.append(op)
+            else:
+                if not got_op and result.__len__() > 0:
+                    del result[-1]
+                result.append(op)
+
+        return sequence
 
     def show_settings(self):
         w = self.w * 2 / 3 * self.scale[0]
@@ -1692,7 +1750,7 @@ class TableWidget(tk.Frame):
         self.update()
 
     def setup_search(self, seq):
-        self.search_sequence = seq
+        self.search_sequence = self.format_sequence(seq)
         if self.search_sequence == '':
             self.search_sequence = 'tuple()'
 

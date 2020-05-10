@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import pandas as pd
 
 
-def build_moustache(dframe, qual, quant, show_axes = True):
+#def check_dframe:
+
+def moustache(dframe, qual1, quant1, lat = 12, long = 7, show_axes = True):
     """
     Maidzhe Alexandra
     Creates a dictionary with qualitative data as keys
@@ -14,76 +17,73 @@ def build_moustache(dframe, qual, quant, show_axes = True):
     :param quant: quantitative data
     :return: figure
     """
+    if not dframe.empty:
+        dframe.rename(columns={quant1: 'rainbow'}, inplace=True)
+        a = dframe.groupby(qual1).rainbow.apply(list)
+        b = list(a.keys())
+    else:
+        return None
 
-    dc = {} #initialaizing the dictionary
-    for i in range(0, len(dframe[qual])):
-        k = [] #initializing the auxilary array to create the dictionary
-        k.append(dframe[quant][i])
-        if dframe[qual][i] not in dc: #checking if the qualitative attribute is not already in the dictionary as a key
-            for j in range(i+1, len(dframe[qual])):
-                if dframe[qual][i] == dframe[qual][j]: #comparing the qualitative attribute with all next ones
-                    k.append(dframe[quant][j]) #adding quantitative data to the dictionary
-            dc[dframe[qual][i]] = k #adding all quantitative attributes of the same qualitative attribute to it
-    a = list(dc.values())
-    b = list(dc.keys())
+    # dimensions of figure:
+    # figure instance
+    fig = plt.figure(1, figsize=(lat, long))
+    # axes instance
+    ax = fig.add_subplot(111)
 
-    #dimensions of figure:
-    fig = plt.figure(1, figsize=(12, 7)) #figure instance
-    ax = fig.add_subplot(111) #axes instance
+    # finding maximum and minimum of qualitative data to personalize the y-thicklabel
+    maxi = max([max(t) for t in a])
+    mini = min([min(t) for t in a])
+    plt.ylim(bottom=mini - 0.1 * (maxi - mini), top=maxi + 0.1 * (maxi - mini))
 
-    #creating and designing the boxplot:
-    bp = ax.boxplot(a, patch_artist=True) # to allow fill color
+    # creating and designing the boxplot:
+    # to allow fill colour
+    bp = ax.boxplot(a, patch_artist=True)
 
     for box in bp['boxes']:
-        box.set( color='k', linewidth=2) #outline colour of the boxes
-        box.set( facecolor = 'C0' ) #fill colour of the boxes
+        # outline colour of the boxes
+        box.set(color='k', linewidth=2)
+        # fill colour of the boxes
+        box.set(facecolor='C0')
 
-    #colour and linewidth of the whiskers
+    # colour and linewidth of the whiskers
     for whisker in bp['whiskers']:
         whisker.set(color='k', linewidth=2)
 
-    #colour and linewidth of the caps
+    # colour and linewidth of the caps
     for cap in bp['caps']:
         cap.set(color='k', linewidth=2)
 
-    #colour and linewidth of the medians
+    # colour and linewidth of the medians
     for median in bp['medians']:
         median.set(color='k', linewidth=2)
 
-    #style of fliers and their fill
+    # style of fliers and their fill
     for flier in bp['fliers']:
         flier.set(marker='o', color='#e7298a', alpha=0.5)
 
-    ax.set_xticklabels(b) #add the qualitative data as x-axis labels
+    if not show_axes:
+        plt.axis('off')
+
+    # add the qualitative data as x-axis labels
+    ax.set_xticklabels(b)
     return fig
 
-
-def show_moustache(dframe, qual, quant):
-    """
-    Maidzhe Alexandra
-    Opens a window with the built boxplot.
-    :param dframe:
-    :param qual:
-    :param quant:
-    """
-    build_moustache(dframe, qual, quant)
+def show_graph(figure):
     plt.show()
 
 
-def save_moustache(dframe, qual, quant):
-    """
-    Maidzhe Alexandra
-    Saves the boxplot in a png format,
-    :param dframe:
-    :param qual:
-    :param quant:
-    """
+def save_graph(figure, name):
+    figure.savefig('moustache21.png', bbox_inches='tight')
+
+'''
+def save_graph(graph_func, dframe, qual1='', qual2='', quant1='', quant2='', lat=12, long=7, show_axis=True):
     #agg backend is used to create plot as a .png file
     mpl.use('agg')
-    figure = build_moustache(dframe, qual, quant)
-    figure.savefig('moustache1.png', bbox_inches='tight') #saving the figure
+    figure = graph_func(dframe, qual1='', quant1='', lat=12, long=7, show_axes=True)
+    # saving the figure
+    figure.savefig('moustache27.png', bbox_inches='tight')
 
-
+save_graph(moustache, dframe, qual1=qual1, quant1=quant, lat=12, long=7, show_axis=True)'''
 #****************************************************************
 #import this file and write:
     #-> show_moustache(dframe, qual, quant) <- to open the figure
@@ -92,3 +92,4 @@ def save_moustache(dframe, qual, quant):
     #dframe is the data frame
     #qual is the qualitative data (kachestvenniye)
     #quant is the quantitative data (kolichestvenniye)
+

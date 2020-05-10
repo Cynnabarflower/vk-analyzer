@@ -137,9 +137,10 @@ class Gui(tk.Tk):
         self.quit()
 
     def update_users(self, users):
+        users = users.reset_index(drop=True)
+        self.users = users
         for page in self.pages:
             page.update_users(users)
-        self.users = users
 
     def get_users(self):
         return self.users
