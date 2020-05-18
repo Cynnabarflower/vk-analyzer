@@ -57,7 +57,7 @@ class RegionalizePage(Page):
                                      figurecolor='#91b0cf',
                                      fillcolor=None, item_padding=self.SCROLL_ITEM_PADDING_Y,
                                      padding=self.SCROLL_PADDING, progress_offset=5)
-        self.scrollList.grid(row=0, column=0, rowspan=3, sticky='n')
+        self.scrollList.grid(row=0, column=0, rowspan=4, sticky='n')
         self.regions_coordinates = json.load(open('allCoordinates.json', 'r'))
         for reg in self.regions_coordinates:
             self.scrollList.add(reg['name'].replace('RU-', ''))
@@ -68,10 +68,10 @@ class RegionalizePage(Page):
                     point[1] = t
         self.scrollList.sort(reverse=False, key=lambda item: item.value)
         self.ruMap = RuMap(self, self.regions_coordinates, hower_callback = self.map_hower, )
-        self.ruMap.grid(column=1, row=0, sticky = 's')
+        self.ruMap.grid(column=1, row=1, sticky = 's')
 
         self.row = row =  Row(self)
-        row.grid(column = 1, row = 1, sticky='n')
+        row.grid(column = 1, row = 2, sticky='n')
         row.add(
             SimpleButton(parent=row, text='123', h = 50, w = 90),
             SimpleButton(parent=row, text='123', h = 50, w = 90),
@@ -80,7 +80,9 @@ class RegionalizePage(Page):
 
         self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize(), w=360,
                                       h=105, backgroundcolor = Gui.background_color)
-        self.button1.grid(column=1, row=2)
+        self.button1.grid(column=1, row=3)
+
+        HorizontalScrollBar(self).grid(row = 0, column = 1)
 
 
     def open_new(self):

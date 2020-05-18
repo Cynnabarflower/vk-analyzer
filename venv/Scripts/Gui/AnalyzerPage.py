@@ -128,7 +128,7 @@ class AnalyzerPage(Page):
         self.navigationNote.resize(w, h, aw, ah, all=True)
 
     def show_plot(self):
-        if self.controller.get_users():
+        if self.controller.get_users() is not None:
             frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height=550)
             self.note.add(frame)
             frame.configure(background=Gui.background_color, bd=-2)
@@ -210,17 +210,18 @@ class AnalyzerPage(Page):
 
             for graph in graphs:
                 # self.get_clickable_canvas(535/4, 535/4, lambda: None)
-                fig = self.get_plot(self.controller.get_users().head(40))
+                fig = self.get_plot(self.controller.get_users().head(40), graph)
                 self.fig = None
                 fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-                c = SimpleButton(self.frame, onclicked = lambda b: self.init_show_graph(b.text), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
+                c = SimpleButton(self.frame, backgroundcolor = 'red', onclicked = lambda b: self.init_show_graph(b.text), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
                 self.canvases.append(c)
                 c.grid(row=t // 4, column= t % 4)
                 t += 1
 
         def init_show_graph(self, name):
             self.fig = None
-            Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
+            self.set_fig(self.get_plot(self.controller.get_users().head(30), name, lat=5, long=8, show_axes=True))
+            # Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
             self.wait_plot()
 
 
@@ -233,9 +234,12 @@ class AnalyzerPage(Page):
             else:
                 self.controller.after(500, self.wait_plot)
 
-        def get_plot(self, data, lat = 1, long = 1, show_axes = False):
-            import moustache_graph
-            fig = moustache_graph.moustache(data, 'first_name', 'id', lat=lat, long=long, show_axes = show_axes)
+        def get_plot(self, data, graph_type, lat = 1, long = 1, show_axes = False):
+            import graphs
+            if int(graph_type) % 2:
+                fig = graphs.moustache(data, 'sex', 'id', lat=lat, long=long, show_axes = show_axes)
+            else:
+                fig = graphs.klaster(data, 'sex', 'name', 'id', lat=lat, long=long, show_axes=show_axes)
             # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
             # fig = Figure(figsize=(1, 1))
             # # a = fig.add_subplot(111)
