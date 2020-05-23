@@ -29,11 +29,12 @@ class Gui(tk.Tk):
         self.timer = None
         self.height = 0
         self.users = None
+        self.users_text = None
         self.initUI()
 
     def initUI(self):
 
-        self.minsize(380, 330)
+        self.minsize(550, 380)
         menubar = tk.Menu(self, bd=-2, borderwidth=0)
         self.config(menu=menubar, bd=-2, borderwidth=0)
         # pages = [ChooseFilesPage(f), RegionalizePage(f)]
@@ -138,9 +139,17 @@ class Gui(tk.Tk):
 
     def update_users(self, users):
         users = users.reset_index(drop=True)
+        users['sex'] = users['sex'].map(lambda a: ('M' if a == 2 else 'F' if a == 1 else 'NA') if isinstance(a, int) else a)
         self.users = users
         for page in self.pages:
             page.update_users(users)
 
     def get_users(self):
         return self.users
+
+    def update_text(self, users_text):
+        self.users_text = users_text
+
+
+    def get_text(self):
+        return self.users_text

@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,7 +21,7 @@ def moustache(dframe, qual1, quant1, lat=12, long=7, show_axes=True):
     # converting quantitative data to float and non-convertible elements to nan
     dframe[quant1] = dframe[quant1].apply(pd.to_numeric, errors='coerce')
     # deleting all rows with nan values
-    dframe = dframe.dropna(subset=[qual1])
+    dframe = dframe.dropna(subset = [qual1, quant1])
     if not dframe.empty:
         dframe.rename(columns={quant1: 'rainbow'}, inplace=True)
         # creating lists' series of the quantitative data grouped by the qualitative data
@@ -68,7 +70,7 @@ def moustache(dframe, qual1, quant1, lat=12, long=7, show_axes=True):
             plt.axis('off')
 
         # adding the qualitative data as x-axis labels
-        ax.set_xticklabels(b)
+        ax.set_xticklabels(b, rotation=40)
         return fig
 
     # otherwise the function returns 'None'
@@ -91,7 +93,7 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
     # converting quantitative data to float and non-convertible elements to nan
     dframe[quant] = dframe[quant].apply(pd.to_numeric, errors='coerce')
     # deleting all rows with nan values
-    dframe = dframe.dropna(subset=[qual1, qual2])
+    dframe = dframe.dropna(subset = [qual1, qual2, quant])
     if not dframe.empty:
         # get lists of qualitative data to legend (with a) and index (with b) the graph
         a = sorted(list(set(dframe[qual1])))
@@ -117,7 +119,7 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
             ax.bar(index + i*bar_width, lst[i], bar_width, label=a[i])
 
         # adding indexes for x-axis label
-        plt.xticks(index + (len(a)*bar_width-bar_width)/2, b)
+        plt.xticks(index + (len(a)*bar_width-bar_width)/2, b, rotation=40)
 
         if not show_axes:
             plt.axis('off')
@@ -128,6 +130,71 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
         return fig
 
     # otherwise the function returns 'None'
+
+
+def sweetie_pie(dframe, qual, lat=5, long=5, show_labels=True):
+    """
+    Maidzhe Alexandra
+    Createsa Pie Chart
+    :param dframe: the dataframe
+    :param qual: qualitative data
+    :param size: size of the plot window
+    :param show_labels: bool to allow labels' showing
+    :return: figure/None
+    """
+    labels = sorted(list(set(dframe[qual])))
+    values = list(dframe.pivot_table(index=[qual], aggfunc='size'))
+
+    fig = plt.figure(figsize=(lat, long))
+    if show_labels:
+        plt.pie(values, labels=labels, autopct='%.1f%%')
+    else:
+        plt.pie(values)
+    return fig
+
+
+"""
+Mosolov Alexandr.
+The function builds a scatter diagram for two quantitative and one qualitative attributes.
+:param data:
+:type data: pandas DataFrame
+:param quan1:
+:type quan1: string
+:param quan2:
+:type quan2: string
+:param qual:
+:type qual: string
+:param wid:
+:type wid: int
+:param long:
+:type long: int
+:param show_axis:
+:type show_axis: bool
+:return fig:
+"""
+def dispersion_diagram(data, q1, q2, qual, lat = 12, long = 7, show_axes = True):
+    if not (data[q1].empty or data[q2].empty or data[qual].empty):
+        u = data[qual].unique()
+        m = data[qual].copy()
+        m = m.reset_index(drop=True)
+        for i in range(len(m)):
+            for j in range(len(u)):
+                if m[i] == u[j]:
+                    m[i] = j
+                    break
+        x = data[q1]
+        y = data[q2]
+        fig = plt.figure(figsize= (lat, long))
+        plt.scatter(x, y, c=m)
+        for i in u:
+            plt.scatter(x, y, c=m, label=i)
+        plt.xlabel(q1)
+        plt.ylabel(q2)
+        plt.axis(show_axes)
+        if show_axes:
+            plt.legend()
+
+        return fig
 
 
 def show_graph(figure):

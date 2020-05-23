@@ -87,8 +87,8 @@ class RegionalizePage(Page):
 
     def open_new(self):
         app = tk.Tk()
-        screen_width = math.floor(app.winfo_screenwidth() / 2)
-        screen_height = math.floor(app.winfo_screenheight() / 2)
+        screen_width = math.floor(app.winfo_screenwidth() / 1.5)
+        screen_height = math.floor(app.winfo_screenheight() / 1.5)
         app.geometry(str(screen_width)+'x'+str(screen_height))
         scaleX = screen_width/self.ruMap.width/1.1
         scaleY = screen_height/self.ruMap.height/1.1

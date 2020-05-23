@@ -9,55 +9,79 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from threading import Thread
+from datetime import date
 
 
 class AnalyzerPage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.data = None
+        self.note = None
+        self.navigationNote = None
+        self.page1 = self.page2 = self.page3 = None
         self.init_pages()
 
-    def setup_items(self, items, data):
-        self.items = items
-        return
-        if not data:
+    def setup_items(self, data):
+        if data is None:
             return
+        items = {}
         if 'first_name' in data:
-            items['name'] += ['first name', 'normalized name']
-        if 'last_name' in data:
-            items['name'] += ['last_name']
-        if 'bday' in data:
-            items['age'] += ['bday', 'age']
+            items['name'] = ['first name']
+            if 'last_name' in data:
+                items['name'] += ['last_name']
+            if 'nickname' in data:
+                items['name'] += ['nickname']
+        if 'bdate' in data:
+            items['age'] = ['bday', 'age_years']
+            if 'age_years' not in data:
+                data['age_years'] = data['bdate'].map(lambda a: self.calc_age(a))
         if 'time_online' in data:
-            items['time'] += ['online hours', 'avg day online']
+            items['time'] = ['online hours', 'avg day online']
+        if 'sex' in data:
+            items['sex'] = ['sex']
+        if 'education' in data:
+            items['education'] = ['education']
+        self.items = items
+
+    def calc_age(self,  bday):
+        if not bday is np.nan:
+            bday = bday.split('.')
+            if len(bday) == 3:
+                bday = [int(i) for i in bday]
+                d = date(bday[2], bday[1], bday[0])
+                today = date.today()
+                age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+                return age
+            else:
+                return -1
+        else:
+            return -1
 
 
     def init_pages(self):
+
+        if self.navigationNote:
+            self.navigationNote.grid_forget()
+        if self.note:
+            self.note.grid_forget()
         self.navigationNote = Note(self)
         self.note = Note(self)
         frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, height=550)
-        self.data = None
         self.note.add(frame)
         frame.configure(background=Gui.background_color, bd=-2)
 
-        self.possible_items = {'name': ['first_name', 'last_name', 'normalized_name'],
-                      'age': ['prop1', 'prop2', 'prop3'],
-                      'time': ['prop1', 'prop2', 'prop3'],
-                      'online': ['prop1', 'prop2', 'prop3'],
-                      'friends': ['prop1', 'prop2', 'prop3'],
-                      'sex': ['prop1', 'prop2', 'prop3'],
-                      'education': ['prop1', 'prop2', 'prop3']}
-
         self.items = {}
-        self.setup_items(self.possible_items, self.data)
+        self.setup_items(self.data)
 
         self.page1 = self._Page1(frame, self.items)
-
         frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
         frame.configure(background=Gui.background_color, bd=-2)
         SimpleButton(parent=frame, text='Next',
                      onclicked=lambda: self.fields_selected() or self.note.select(1) or self.navigationNote.select(1),
                      w=550, h=57,
-                     padding=5).grid(row=5, column=0, columnspan=4, sticky='s')
+                     padding=5).grid(row=5, column=0,
+                                     columnspan= 1 if self.page1.buttons.__len__() < 5 else self.page1.buttons.__len__() - 3 if self.page1.buttons.__len__() < 7 else 4,
+                                     sticky='s')
         self.navigationNote.add(frame)
         frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
         frame.configure(background=Gui.background_color, bd=-2)
@@ -87,8 +111,11 @@ class AnalyzerPage(Page):
 
         self.note.select(0)
         self.navigationNote.select(0)
-        self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
-        self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
+        self.rowconfigure(0, weight=1)
+        self.note.grid(column = 0, row = 0, sticky = 'n')
+        self.navigationNote.grid(column=0, row=1, sticky = 's')
+        # self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
+        # self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
 
     def update_users(self, users):
         self.data = users
@@ -112,19 +139,32 @@ class AnalyzerPage(Page):
                     frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0)
                     self.note.add(frame)
                     frame.configure(background=Gui.background_color, bd=-2)
-                    self._Page2(frame, items=selected)
+                    self.page2 = self._Page2(frame, items=selected)
                     selected = []
         if selected.__len__() > 0:
             frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height = 550)
             self.note.add(frame)
             frame.configure(background=Gui.background_color, bd=-2)
-            self._Page2(frame, items=selected)
+            self.page2 = self._Page2(frame, items=selected)
             selected = []
         return self.note.pages.__len__() < 2
 
     def resize(self, w, h, aw, ah):
         print('Analyzer resized')
-        self.note.resize(w, h, aw, ah, all=True)
+        # self.note.resize(w, h, aw, ah, all=True)
+        if self.page1:
+            self.page1.resize(w,h,aw,ah)
+        if self.page2:
+            self.page2.resize(w, h, aw, ah)
+        if self.page3:
+            self.page3.resize(w,h,aw,ah)
+        for f in self.navigationNote.pages:
+            if hasattr(f, 'resize'):
+                f.resize(w, h, aw, ah)
+            elif hasattr(f, 'children'):
+                for ch in f.children.values():
+                    if hasattr(ch, 'resize'):
+                        ch.resize(w, h, aw, ah)
         self.navigationNote.resize(w, h, aw, ah, all=True)
 
     def show_plot(self):
@@ -132,7 +172,7 @@ class AnalyzerPage(Page):
             frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height=550)
             self.note.add(frame)
             frame.configure(background=Gui.background_color, bd=-2)
-            self._Page3(frame, self.controller)
+            self.page3 = self._Page3(frame, self.controller, self.page2.get_chosen())
             self.plot()
 
     def plot (self):
@@ -152,14 +192,23 @@ class AnalyzerPage(Page):
                 b = SimpleButton(parent=frame, text=item, onclicked=lambda: print(item), w=130, h=57,
                                  padding=5, fixed=True, fillcolor='#91b0cf', loadcolor='#4978a6')
                 self.buttons.append(b)
-                b.grid(row=i // 4 + 1, column=i % 4)
+
+                b.grid(row=i // 4 + 1, column=i % 4, sticky = 'nw')
                 i += 1
-            while i // 4 + 1 < 4:
-                SimpleButton(parent=frame,
+
+            while i < 16:
+
+                b = SimpleButton(parent=frame,
                              w=130, h=57, padding=5,
-                             fillcolor=Gui.background_color, loadcolor=Gui.background_color).grid(row=i % 4 + 1,
-                                                                                                  column=0)
-                i += 4
+                             fillcolor=Gui.background_color, loadcolor=Gui.background_color)
+                b.grid(row=i // 4 + 1,column=i % 4, sticky = 'nw')
+                self.buttons.append(b)
+                i += 1
+
+        def resize(self, w, h, aw, ah):
+            for b in self.buttons:
+                if b:
+                    b.resize(w,h, aw, ah)
 
     class _Page2:
         def __init__(self, frame, items):
@@ -171,16 +220,18 @@ class AnalyzerPage(Page):
             self.buttons = []
             self.props = []
             i = 0
-            t = 0
+            t = 1
 
             for item in items:
-                b = RadioButton(frame, header_template =  SimpleButton(parent=frame, w=130, h=57, padding=5,
+                b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
                              fillcolor='#4978a6', loadcolor='#4978a6'), child_template = SimpleButton(parent=frame, w=130, h=57, padding=5,
                              fillcolor='#91b0cf', loadcolor='#4978a6'), can_choose_multiple = False)
                 b.set_header(item[0])
                 for value in item[1]:
                     b.add_value(value)
-                b.grid(row=t, column=0)
+
+                self.buttons.append(b)
+                b.grid(row=t, column=0, sticky = 'nw')
                 t += 1
 
 
@@ -194,34 +245,66 @@ class AnalyzerPage(Page):
             #         b.grid(row=t % 4 + 1, column=i % 3 + 1)
             #     t += 1
             while t < 4:
-                SimpleButton(parent=frame,
+                b = SimpleButton(parent=frame,
                              w=130, h=57, padding=5,
-                             fillcolor=Gui.background_color, loadcolor=Gui.background_color).grid(row=t % 4 + 1,
-                                                                                                  column=0)
+                             fillcolor=Gui.background_color, loadcolor=Gui.background_color)
+                self.buttons.append(b)
+                b.grid(row=t + 1,
+                      column=0)
                 t += 1
 
+        def get_chosen(self):
+            chosen = {}
+            for b in self.buttons:
+                if isinstance(b, RadioButton):
+                    chosen[b.header.text] = b.get_selected()
+            return chosen
+
+        def resize(self, w, h, aw, ah):
+            for b in self.buttons:
+                if b:
+                    b.resize(w,h, aw, ah)
+
     class _Page3:
-        def __init__(self, frame, controller):
+        def __init__(self, frame, controller, items):
             self.controller = controller
             self.canvases = []
             self.frame = frame
+            self.buttons = []
+            self.items = items
             t = 0
-            graphs = [1,2,3,4,5,6,7,8]
+
+
+
+            graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie']
 
             for graph in graphs:
                 # self.get_clickable_canvas(535/4, 535/4, lambda: None)
-                fig = self.get_plot(self.controller.get_users().head(40), graph)
+                fig = self.get_plot(self.controller.get_users().sample(min(40, self.controller.get_users().__len__())), graph)
                 self.fig = None
                 fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-                c = SimpleButton(self.frame, backgroundcolor = 'red', onclicked = lambda b: self.init_show_graph(b.text), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
+                matplotlib.pyplot.clf()
+                matplotlib.pyplot.cla()
+                c = SimpleButton(self.frame, onclicked = lambda b: self.clicked(b), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
                 self.canvases.append(c)
-                c.grid(row=t // 4, column= t % 4)
+                self.buttons.append(c)
+                c.grid(row=t // 4, column= t % 4, sticky = 'nw')
                 t += 1
+
+        def clicked(self, b):
+            self.init_show_graph(b.text)
+            b.updatecanvas(b.fillcolor)
+            b.update()
 
         def init_show_graph(self, name):
             self.fig = None
-            self.set_fig(self.get_plot(self.controller.get_users().head(30), name, lat=5, long=8, show_axes=True))
-            # Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
+            users = self.controller.get_users()
+            if users.__len__() > 3000:
+                users = users.sample(3000)
+            self.set_fig(self.get_plot(users, name, lat=5, long=8, show_axes=True))
+            # self.tt = Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users(), name, lat = 5, long= 8, show_axes=True)))
+            # self.tt.start()
+            # multiprocessing.Process(target=lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
             self.wait_plot()
 
 
@@ -231,15 +314,21 @@ class AnalyzerPage(Page):
         def wait_plot(self):
             if self.fig:
                 matplotlib.pyplot.show()
+                matplotlib.pyplot.clf()
+                matplotlib.pyplot.cla()
             else:
                 self.controller.after(500, self.wait_plot)
 
         def get_plot(self, data, graph_type, lat = 1, long = 1, show_axes = False):
             import graphs
-            if int(graph_type) % 2:
-                fig = graphs.moustache(data, 'sex', 'id', lat=lat, long=long, show_axes = show_axes)
-            else:
-                fig = graphs.klaster(data, 'sex', 'name', 'id', lat=lat, long=long, show_axes=show_axes)
+            if (graph_type) == 'Moustache':
+                fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes = show_axes)
+            elif graph_type == 'Cluster':
+                fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Pie':
+                fig = graphs.sweetie_pie(data, 'sex', lat=lat, long=long, show_labels=show_axes)
+            elif graph_type == 'Dispersion':
+                fig = graphs.dispersion_diagram(data, 'id', 'age_years', 'sex', lat=lat, long=long, show_axes=show_axes)
             # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
             # fig = Figure(figsize=(1, 1))
             # # a = fig.add_subplot(111)
@@ -256,6 +345,11 @@ class AnalyzerPage(Page):
             # # a.set_ylabel("Y", fontsize=14)
             # # a.set_xlabel("X", fontsize=14)
             return fig
+
+        def resize(self, w, h, aw, ah):
+            for b in self.buttons:
+                if b:
+                    b.resize(w,h, aw, ah)
 
         # def get_clickable_canvas(self, w, h, onclicked):
         #     def clicked(e):

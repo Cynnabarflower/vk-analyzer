@@ -729,12 +729,12 @@ class ProgressBar:
                                       font=self.font)
             box = canvas.bbox(text)
 
+
     def drawprogress(self, progress=-1):
         if not self.working:
             self.canvas.delete('inner_' + self.id)
             self.canvas.itemconfigure('outer_' + self.id, state='hidden')
             self.canvas.itemconfigure('progress_' + self.id, state='hidden')
-            self.working = True
             return
         if not self.visible:
             self.canvas.itemconfigure('outer_' + self.id, state='hidden')
@@ -978,6 +978,8 @@ class RadioButton(tk.Frame):
         print('chosen ', button.text)
         if not self.can_choose_multiple:
             for button1 in self.chosenButtons:
+                if button1 == button:
+                    continue
                 print('unchosen ', button1.text)
                 button1.state = False
                 button1.updatecanvas()
@@ -1000,6 +1002,12 @@ class RadioButton(tk.Frame):
         for child in self.values:
             if child.value == value:
                 self.values.remove(child)
+
+    def resize(self, w, h, aw, ah):
+        if self.header:
+            self.header.resize(w, h, aw, ah)
+        for child in self.values:
+            child.resize(w, h, aw, ah)
 
 
 class FloatingButton(SimpleButton):
@@ -1169,6 +1177,7 @@ class InputField(tk.Frame):
                 self.coursor = min(self.text.__len__(), self.coursor + 1)
                 self.update_text()
             elif e.char == '\t' or e.char == '\n' or e.char == '\r' or e.char == '':
+                print(self.text)
                 self.in_focus = False
                 if self.on_ener:
                     self.on_ener(self)
@@ -1525,8 +1534,8 @@ class TableWidget(tk.Frame):
                     '!inputfield'].text != '':
                     if self.search_sequence != '':
                         self.search_sequence += ' and '
-                    self.search_sequence += '(' + child.children['!simplebutton'].text + '==' + child.children[
-                        '!inputfield'].text + ')'
+                    self.search_sequence += '(' + child.children['!simplebutton'].text + '==\'' + child.children[
+                        '!inputfield'].text + '\')'
 
             elif isinstance(child, RadioButton):
                 field = child.header.text
@@ -1536,7 +1545,7 @@ class TableWidget(tk.Frame):
                         self.search_sequence += ' and '
                     self.search_sequence += '('
                     for value in selected:
-                        self.search_sequence += field + '==' + str(value) + ' or '
+                        self.search_sequence += field + '==\'' + str(value) + '\' or '
                     self.search_sequence = self.search_sequence[:-3] + ')'
         self.inputfield.text = self.search_sequence
         self.search_sequence = self.format_sequence(self.search_sequence)
