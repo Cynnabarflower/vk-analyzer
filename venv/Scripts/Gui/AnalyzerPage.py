@@ -276,30 +276,43 @@ class AnalyzerPage(Page):
             t = 0
 
             graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie']
-
+            # Тут создаются кнопки
+            #Кстати ctrl+click по вызову функции - перейти к объявлению функции
             for graph in graphs:
-                # self.get_clickable_canvas(535/4, 535/4, lambda: None)
+                #Для каждого типа графика получим фигуру на основании 40 случайных элементов
                 fig = self.get_plot(self.controller.get_users().sample(min(40, self.controller.get_users().__len__())), graph)
                 self.fig = None
+                #Сохраним эту фигуру как картинку
                 fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
+                #Эти 2 строки мб можно убрать
                 matplotlib.pyplot.clf()
                 matplotlib.pyplot.cla()
+                #Непосредственно создание кнопки
+                #В кнопку в onclicked передали лямбда функцию - она выполнится при клике на кнопку
+                #Там как раз и показ графика и выбор столбцов
                 c = SimpleButton(self.frame, onclicked = lambda b: self.clicked(b), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
                 self.canvases.append(c)
                 self.buttons.append(c)
+                #разместим кнопку на лэйауте
                 c.grid(row=t // 4, column= t % 4, sticky = 'nw')
                 t += 1
 
         def clicked(self, b):
+            #Дальше в init_show_graph (ctrl+click)
             self.init_show_graph(b.text)
             b.updatecanvas(b.fillcolor)
             b.update()
 
         def init_show_graph(self, name):
+            # Тут получаем всех пользователей (data frame) и берем только 3000. Я очень не хотел этого делать, но
+            # похоже нет способа строить график в другом потоке, а значит пока он строится программа зависает. Так что 3000
+            # Кстати из-за этого графики каждый раз немного разные
             self.fig = None
             users = self.controller.get_users()
             if users.__len__() > 3000:
                 users = users.sample(3000)
+            # Я не помню почему просто не написал self.figure = self.get_plot(...)
+            # В общем надо перелать get_plot - добавить ввод массива имен полей
             self.set_fig(self.get_plot(users, name, lat=5, long=8, show_axes=True))
             # self.tt = Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users(), name, lat = 5, long= 8, show_axes=True)))
             # self.tt.start()
@@ -311,6 +324,8 @@ class AnalyzerPage(Page):
             self.fig = fig
 
         def wait_plot(self):
+            #Эта функция была нужна т.к я надеялся строить в другом потоке и каждые пол секунды проверять построился ли график
+            #Теперь она по сути не нужна и выполняет функцию просто прослойки
             if self.fig:
                 graphs.show_graph(self.fig)
                 matplotlib.pyplot.clf()
@@ -319,7 +334,13 @@ class AnalyzerPage(Page):
                 self.controller.after(500, self.wait_plot)
 
         def get_plot(self, data, graph_type, lat = 1, long = 1, show_axes = False):
-
+            #Вот эту функцию надо изменить.
+            # Надо добавить аргумент - массив (список) имен полей
+            # Чтобы напрмер было: graphs.moustache(data, fields[0], fields[1], lat=lat, long=long, show_axes = show_axes)
+            #Это не всё. Еще надо чтобы при создании кнопки сохранялиь поля с которыми она будет вызывать график
+            #Чтобы одна кнопка вызывала Pie про sex, другая - Pie про age и тд
+            #Для этого в массив buttons куда добовляется конпка можно добавлять не кнопку, а tuple например (button, ["field1", "field2", ...)
+            #Этот массив используется в функции resize надо там соответственно чтобы не сломалось, вроде больше ни где не используется.
             if (graph_type) == 'Moustache':
                 fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes = show_axes)
             elif graph_type == 'Cluster':
