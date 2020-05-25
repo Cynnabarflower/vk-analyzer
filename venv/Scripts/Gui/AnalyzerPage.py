@@ -275,8 +275,6 @@ class AnalyzerPage(Page):
             self.items = items
             t = 0
 
-
-
             graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie']
 
             for graph in graphs:
