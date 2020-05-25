@@ -1,52 +1,88 @@
-GOODS1 = pd.DataFrame({"назв":['яблоки', 'бананы', 'сыр'],
-                       "тг":['фрукты', 'фрукты', 'молочные продукты'],
-                       "код_пост":['10', '20', '10'],
-                       "цена":[100, 50, 500]})
+import requests
+import bs4
+import re
+import json
+import random
+import time
 
-GOODS2 = pd.DataFrame({"назв":['виноград', 'кефир', 'ананасы'],
-                       "тг":['фрукты', 'молочные продукты', 'фрукты'],
-                       "код_пост":['10', '10', '20'],
-                       "цена":[200, 70, 150]})
 
-SUPL = pd.DataFrame({"код_пост":['10', '20'],
-                       "пост":['Рога и Копыта', 'Парнас'],
-                       "область":['Тверская', 'Воронежская'],
-                       "наценка":[15, 10]})
+class VKFA:
 
-import pandas as pd
+    def __init__(self, login=None, passwd=None, obj=None, section=None, **kwargs):
+        self.login = login
+        self.password = passwd
+        self.kwargs = kwargs
+        self.s = requests.session()
 
-purchases = pd.DataFrame(
-{
-'client' : ['Alice', 'Bob', 'Alice', 'Claudia'],
-'item' : ['sweets', 'chock', 'chock', 'juice'],
-'quantity' : [4, 5, 3, 2]
-}
-)
+        self.obj = obj
+        self.section = section
 
-goods = pd.DataFrame(
-{
-'good': ['sweets', 'chock', 'juice', 'lemons'],
-'price': [15, 7, 8, 3]
-}
-)
+    def auth(self):
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36",
+            "accept": "*/*",
+            "content-type": "application/x-www-form-urlencoded"
+        }
+        self.s.headers = headers
+        r = self.s.get("https://vk.com/")
 
-discounts = pd.DataFrame(
-{
-'client' : ['Alice', 'Bob', 'Patricia'],
-'discount' : [10, 5, 15]
-}
-)
+        soup = bs4.BeautifulSoup(r.text, "html.parser")
+        params = {}
+        for i in soup.find("form", {"id": "quick_login_form"}).findAll("input"):
+            params[i.get("name")] = i.get("value")
+        params["email"] = self.login
+        params["pass"] = self.password
+        del params[None]
+        r = self.s.post("https://login.vk.com/?act=login", params=params)
+        if "onLoginDone" in r.text:
+            line = re.search(r"parent.onLoginDone\((.+)\);", r.text).group(0)
+            data = re.match(r"[^[]*\(([^]]*)\)", line).groups()[0]
+            self.url = "http://vk.com" + data.split(",")[0].replace("'", "")
+            return self.url
+        else:
+            return False
 
-def totals(purchases, goods, discounts):
-	d = pd.merge(purchases, goods, left_on = 'item', right_on = 'good', how = 'left')
-	d = pd.merge(d, discounts, on = 'client', how = 'left')
-	d.set_index('item')
-	d = d.fillna(0)
-	d['sum'] = d['quantity'] * d['price'] * (100 - d['discount'])/100.0
-	d = d.fillna(0)
-	d = pd.pivot_table(d, index = ['client'], columns = ['good'], values='sum')
-	d = d.reindex(goods['good'], axis='columns')
-	d = d.fillna(0)
-	return d
+    def __getattr__(self, method):
+        if self.obj:
+            obj = self.obj
+        else:
+            obj = self
 
-totals(purchases, goods, discounts)
+        if self.section:
+            return VKFA(section=f"{self.section}.{method}", obj=obj)
+        else:
+            return VKFA(section=method, obj=self)
+
+    def __call__(self, **kwargs):
+        h = self.obj.get_hash(self.section)
+        if not h:
+            raise Exception("Error while getting hash")
+        params = {
+            "act": "a_run_method",
+            "al": 1,
+            "hash": h,
+            "param_v": "5.103",
+            "method": self.section
+        }
+
+        for i in self.obj.kwargs:
+            params[f"param_{i}"] = self.obj.kwargs[i]
+
+        for i in kwargs:
+            params[f"param_{i}"] = kwargs[i]
+
+        r = self.obj.s.get(f"https://vk.com/dev/{self.section}", params=params)
+        try:
+            data = json.loads(json.loads(re.findall("<!--(.+)", r.text)[0])["payload"][1][0])
+            if "response" in data:
+                return data["response"]
+            raise Exception(data["error"])
+        except Exception as e:
+            return e
+
+    def get_hash(self, method):
+        r = self.s.get('https://vk.com/dev/' + method)
+        h = re.findall('onclick="Dev.methodRun\(\'(.+?)\', this\);', r.text)
+        if h:
+            return h
+        return False

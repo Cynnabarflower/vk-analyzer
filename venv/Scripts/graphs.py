@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,7 +19,7 @@ def moustache(dframe, qual1, quant1, lat=12, long=7, show_axes=True):
     # converting quantitative data to float and non-convertible elements to nan
     dframe[quant1] = dframe[quant1].apply(pd.to_numeric, errors='coerce')
     # deleting all rows with nan values
-    dframe = dframe.dropna(subset = [qual1, quant1])
+    dframe = dframe.dropna(subset=[qual1, quant1])
     if not dframe.empty:
         dframe.rename(columns={quant1: 'rainbow'}, inplace=True)
         # creating lists' series of the quantitative data grouped by the qualitative data
@@ -93,7 +91,7 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
     # converting quantitative data to float and non-convertible elements to nan
     dframe[quant] = dframe[quant].apply(pd.to_numeric, errors='coerce')
     # deleting all rows with nan values
-    dframe = dframe.dropna(subset = [qual1, qual2, quant])
+    dframe = dframe.dropna(subset=[qual1, qual2, quant])
     if not dframe.empty:
         # get lists of qualitative data to legend (with a) and index (with b) the graph
         a = sorted(list(set(dframe[qual1])))
@@ -108,7 +106,7 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
 
         # building the figure:
         # fig, ax = plt.subplots()
-        fig = plt.figure(1, figsize=(lat, long))
+        fig = plt.figure(2, figsize=(lat, long))
         ax = fig.add_subplot(111)
 
         # setting the width and positions for the bars
@@ -132,7 +130,7 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
     # otherwise the function returns 'None'
 
 
-def sweetie_pie(dframe, qual, lat=5, long=5, show_labels=True):
+def sweetie_pie(dframe, qual, size=5, show_labels=True):
     """
     Maidzhe Alexandra
     Createsa Pie Chart
@@ -145,12 +143,38 @@ def sweetie_pie(dframe, qual, lat=5, long=5, show_labels=True):
     labels = sorted(list(set(dframe[qual])))
     values = list(dframe.pivot_table(index=[qual], aggfunc='size'))
 
-    fig = plt.figure(figsize=(lat, long))
+    fig = plt.figure(3, figsize=(size, size))
     if show_labels:
         plt.pie(values, labels=labels, autopct='%.1f%%')
     else:
         plt.pie(values)
     return fig
+
+
+def show_graph(figure):
+    """
+    Maidzhe Alexandra
+    Closes all the other figures,
+    to open just the passed one.
+    :param figure: a graph
+    """
+    n = figure.number
+    #closing all figures but the one needed
+    for i in range(1, 10):
+        if i != n:
+            plt.close(i)
+    plt.show()
+
+
+def save_graph(figure):
+    figure.savefig('figure.png', bbox_inches='tight')
+
+
+#****************************************************************
+#dframe is the data frame
+#qual is the qualitative data (kachestvenniye)
+#quant is the quantitative data (kolichestvenniye)
+
 
 
 """
@@ -195,15 +219,6 @@ def dispersion_diagram(data, q1, q2, qual, lat = 12, long = 7, show_axes = True)
             plt.legend()
 
         return fig
-
-
-def show_graph(figure):
-    plt.show()
-
-
-def save_graph(figure):
-    figure.savefig('figure.png', bbox_inches='tight')
-
 
 #****************************************************************
 # #dframe is the data frame

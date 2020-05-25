@@ -10,6 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from threading import Thread
 from datetime import date
+import graphs
 
 
 class AnalyzerPage(Page):
@@ -313,20 +314,20 @@ class AnalyzerPage(Page):
 
         def wait_plot(self):
             if self.fig:
-                matplotlib.pyplot.show()
+                graphs.show_graph(self.fig)
                 matplotlib.pyplot.clf()
                 matplotlib.pyplot.cla()
             else:
                 self.controller.after(500, self.wait_plot)
 
         def get_plot(self, data, graph_type, lat = 1, long = 1, show_axes = False):
-            import graphs
+
             if (graph_type) == 'Moustache':
                 fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes = show_axes)
             elif graph_type == 'Cluster':
                 fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Pie':
-                fig = graphs.sweetie_pie(data, 'sex', lat=lat, long=long, show_labels=show_axes)
+                fig = graphs.sweetie_pie(data, 'sex', size = lat, show_labels=show_axes)
             elif graph_type == 'Dispersion':
                 fig = graphs.dispersion_diagram(data, 'id', 'age_years', 'sex', lat=lat, long=long, show_axes=show_axes)
             # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
