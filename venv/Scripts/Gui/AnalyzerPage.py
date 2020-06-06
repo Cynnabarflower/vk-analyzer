@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from threading import Thread
 from datetime import date
 import graphs
+import datanaliser
 
 
 class AnalyzerPage(Page):
@@ -34,14 +35,18 @@ class AnalyzerPage(Page):
                 items['name'] += ['nickname']
         if 'bdate' in data:
             items['age'] = ['bday', 'age_years']
-            if 'age_years' not in data:
-                data['age_years'] = data['bdate'].map(lambda a: self.calc_age(a))
+            data['age_years'] = data['bdate'].map(lambda a: self.calc_age(a))
         if 'time_online' in data:
             items['time'] = ['online hours', 'avg day online']
         if 'sex' in data:
             items['sex'] = ['sex']
-        if 'education' in data:
-            items['education'] = ['education']
+        if 'education_status' in data:
+            items['education_status'] = ['education status']
+        if "university_name" in data:
+            items['university_name'] = ['university name']
+        if 'detected_region' in data:
+            items['region'] = ['region']
+
         self.items = items
 
     def calc_age(self,  bday):
@@ -88,7 +93,7 @@ class AnalyzerPage(Page):
         frame.configure(background=Gui.background_color, bd=-2)
         self.navigationNote.add(frame)
         SimpleButton(parent=frame, text="Done!",
-                     onclicked=lambda: self.show_plot() or self.note.select(next=True) or self.navigationNote.select(2),
+                     onclicked=lambda: self.show_plot() or self.note.select(self.note.pages.__len__()-1) or self.navigationNote.select(2),
                      w=290, h=57, padding=5).grid(row=5,
                                                   column=1,
                                                   pady=0,
@@ -125,7 +130,6 @@ class AnalyzerPage(Page):
         if self.navigationNote:
             self.navigationNote.forget()
         self.init_pages()
-
 
 
     def fields_selected(self):
@@ -231,6 +235,10 @@ class AnalyzerPage(Page):
                 for value in item[1]:
                     b.add_value(value)
 
+                if item[1].__len__() == 1:
+                    b.chosen(b.values[0])
+                    b.values[0].state = True
+                    b.values[0].updatecanvas()
                 self.buttons.append(b)
                 b.grid(row=t, column=0, sticky = 'nw')
                 t += 1
@@ -276,6 +284,8 @@ class AnalyzerPage(Page):
             t = 0
 
             graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie']
+            graph_buttons = []
+
             # Тут создаются кнопки
             #Кстати ctrl+click по вызову функции - перейти к объявлению функции
             for graph in graphs:
@@ -296,6 +306,50 @@ class AnalyzerPage(Page):
                 #разместим кнопку на лэйауте
                 c.grid(row=t // 4, column= t % 4, sticky = 'nw')
                 t += 1
+            b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED', textcolor = '#4978a6'),
+                            child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
+                            can_choose_multiple=True, onclicked = lambda a: self.radio_clicked(a))
+            b.set_header("Fields:")
+            for value in items.values():
+                b.add_value(value[0])
+            b.grid(row=1, column=0, sticky='nw', columnspan = 4)
+
+        def radio_clicked(self, b):
+            selected = b
+            flags = [1,1,1,1]
+            if not "age_years" in b \
+                    or b.__len__() != 2:
+                flags[0] = 0
+            if b.__len__() != 3 or "age_years" not in b:
+                flags[1] = 0
+            if b.__len__() != 3 or "age_years" not in b:
+                flags[2] = 0
+            if b.__len__() != 1 or "age_years" in b:
+                flags[3] = 0
+            self.available(flags)
+
+        def available(self, flags):
+            for i in range(flags.__len__()):
+                if not flags[i]:
+                    self.buttons[i].clicked = None
+                    self.buttons[i].fillcolor = "#F0F0ED"
+                    self.buttons[i].set_text("-")
+                    self.buttons[i].updatecanvas()
+                else:
+                    self.buttons[i].clicked = lambda b: self.clicked(b)
+                    self.buttons[i].fillcolor = "#91b0cf"
+            if flags[0]:
+                self.buttons[0].set_text("Бокса-Вискера")
+            if flags[1]:
+                self.buttons[1].set_text("Кластер")
+            if flags[2]:
+                self.buttons[2].set_text("Дисперсия")
+            if flags[3]:
+                self.buttons[3].set_text("Пирог")
+            for i in range(flags.__len__()):
+                    self.buttons[i].updatecanvas()
 
         def clicked(self, b):
             #Дальше в init_show_graph (ctrl+click)
