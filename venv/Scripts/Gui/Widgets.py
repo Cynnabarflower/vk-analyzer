@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk
+# from PIL import Image, ImageTk
 import math
 import threading as th
 from multiprocessing import Queue
@@ -1499,7 +1499,7 @@ class TableWidget(tk.Frame):
         self.selectedUsers = set()
         self.sorted_data = pd.DataFrame(None, columns=self.available_fields)
         self.input_row = Row(self)
-        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 4 * self.header_height,
+        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 5 * self.header_height,
                                                   self.header_height, text='', bg='#ffffff',
                                                   empty_text='Search',
                                                   on_enter=lambda a: self.search(a.text))
@@ -1517,6 +1517,9 @@ class TableWidget(tk.Frame):
         show_settings = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text=chr(9881),
                                      onclicked=self.show_settings, padding=5, fixed=True)
         self.input_row.add(show_settings)
+        save_table = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text="S",
+                                     onclicked=self.show_settings, padding=5, fixed=True)
+        self.input_row.add(save_table)
         self.input_row.grid(row=0, column=0, sticky='n')
         # inputfield.grid(row=0, column=0, sticky='n')
         self.init_table()
