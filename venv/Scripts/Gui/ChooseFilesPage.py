@@ -478,20 +478,47 @@ class ChooseFilesPage(Page):
         print(t.time())
         filename = file.split('/')[-1]
         counter = 0
-        js_packs = json.load(f)
-        total = js_packs.__len__() + 1
-        for js in js_packs:
-            #     for user in js:
-            #         if user['id'] in self.users['id']:
-            #             if self.users['id' == user['id']].__len__() < user.__len__():
-            #                 self.users[user['id']] = user
-            #         else:
-            #             self.users = self.users.append(user, ignore_index=True)
-            counter += 1
-            self.users = self.users.append(pd.DataFrame(js).set_index("id"))
-            q.put((filename, counter / total))
-        # self.users = self.users.drop_duplicates(subset='id', keep="last")
-        self.users['id'] = self.users.index
+        if file.endswith('csv'):
+            try:
+                self.users = self.users.append(pd.read_csv(file, encoding='utf-8', engine='python'))
+                self.users.drop_duplicates(subset='id', inplace=True, keep='last')
+
+                # self.users.set_index("id", inplace=True)
+                # self.users['id'] = self.users.index
+            except:
+                try:
+                    self.users = self.users.append(pd.read_csv(file, encoding='ANSI', engine='python'))
+                    self.users.drop_duplicates(subset='id', inplace=True, keep='last')
+                    # self.users.set_index("id", inplace = True)
+                    # self.users['id'] = self.users.index
+                except:
+                    print("Error when reading file")
+
+        else:
+            js_packs = json.load(f)
+            total = js_packs.__len__() + 1
+            for js in js_packs:
+                #     for user in js:
+                #         if user['id'] in self.users['id']:
+                #             if self.users['id' == user['id']].__len__() < user.__len__():
+                #                 self.users[user['id']] = user
+                #         else:
+                #             self.users = self.users.append(user, ignore_index=True)
+                counter += 1
+                users = pd.DataFrame(js)
+                # if 'faculty_name' in users.columns:
+                #     users.drop('faculty_name', inplace=True, axis='columns')
+                users['city'] = users['city'].map(lambda a: pd.NA if pd.isna(a) or not isinstance(a, dict) else a['id'] )
+                users['occupation'] = users['occupation'].map(lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
+                users['university_name'].fillna('', inplace=True)
+                users['education_status'].fillna('', inplace=True)
+
+
+                self.users = self.users.append(users)
+                q.put((filename, counter / total))
+                # self.users['id'] = self.users.index
+        self.users = self.users.drop_duplicates(subset='id', keep="last")
+
         q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename))
 

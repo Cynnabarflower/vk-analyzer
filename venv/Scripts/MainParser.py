@@ -562,7 +562,8 @@ class VkLoader:
         fields = 'nickname, screen_name, sex, bdate, city, country, timezone, photo, has_mobile, contacts, education, online, counters, relation, last_seen, activity, can_write_private_message, can_see_all_posts, can_post, universities, followers_count, counters, occupation'
         if not (user_fields is None):
             if isinstance(user_fields, str):
-                fields = user_fields
+                if user_fields != '':
+                    fields = user_fields
             elif isinstance(user_fields, list):
                 fields = str(user_fields)[1::][:-1].replace("'", "").replace('"', '')
             else:
@@ -574,6 +575,11 @@ class VkLoader:
             apis = self.admin_apis
             current_acc = self.current_acc
 
+        apis = [
+            vk_caller.VKFA('+79629884898', '9841b7a33831ef01be43136501')
+        ]
+        apis[0].auth()
+        current_acc = 0
         group = apis[current_acc].groups.getById(group_id=group_name, fields="members_count")
         print('getting from group ', group[0]['name'], '...')
         group_id = group[0]['id']

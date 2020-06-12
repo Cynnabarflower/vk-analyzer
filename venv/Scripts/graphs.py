@@ -110,14 +110,14 @@ def klaster(dframe, qual1, qual2, quant, lat=12, long=7, show_axes=True):
         ax = fig.add_subplot(111)
 
         # setting the width and positions for the bars
-        bar_width = 0.95/len(a)
+        bar_width = 0.95 / len(a)
         index = np.arange(len(b))
 
         for i in range(len(a)):
-            ax.bar(index + i*bar_width, lst[i], bar_width, label=a[i])
+            ax.bar(index + i * bar_width, lst[i], bar_width, label=a[i])
 
         # adding indexes for x-axis label
-        plt.xticks(index + (len(a)*bar_width-bar_width)/2, b, rotation=40)
+        plt.xticks(index + (len(a) * bar_width - bar_width) / 2, b, rotation=40)
 
         if not show_axes:
             plt.axis('off')
@@ -159,7 +159,7 @@ def show_graph(figure):
     :param figure: a graph
     """
     n = figure.number
-    #closing all figures but the one needed
+    # closing all figures but the one needed
     for i in range(1, 10):
         if i != n:
             plt.close(i)
@@ -170,11 +170,10 @@ def save_graph(figure):
     figure.savefig('figure.png', bbox_inches='tight')
 
 
-#****************************************************************
-#dframe is the data frame
-#qual is the qualitative data (kachestvenniye)
-#quant is the quantitative data (kolichestvenniye)
-
+# ****************************************************************
+# dframe is the data frame
+# qual is the qualitative data (kachestvenniye)
+# quant is the quantitative data (kolichestvenniye)
 
 
 """
@@ -192,36 +191,39 @@ The function builds a scatter diagram for two quantitative and one qualitative a
 :type wid: int
 :param long:
 :type long: int
-:param show_axis:
-:type show_axis: bool
+:param show_axes:
+:type show_axes: bool
 :return fig:
 """
-def dispersion_diagram(data, q1, q2, qual, lat = 12, long = 7, show_axes = True):
-    if not (data[q1].empty or data[q2].empty or data[qual].empty):
-        u = data[qual].unique()
-        m = data[qual].copy()
-        m = m.reset_index(drop=True)
-        for i in range(len(m)):
-            for j in range(len(u)):
-                if m[i] == u[j]:
-                    m[i] = j
-                    break
-        x = data[q1]
-        y = data[q2]
-        fig = plt.figure(figsize= (lat, long))
-        plt.scatter(x, y, c=m)
-        for i in u:
-            plt.scatter(x, y, c=m, label=i)
-        plt.xlabel(q1)
-        plt.ylabel(q2)
-        plt.axis(show_axes)
-        if show_axes:
-            plt.legend()
 
-        return fig
 
-#****************************************************************
+# ****************************************************************
 # #dframe is the data frame
-#qual is the qualitative data (kachestvenniye)
-#quant is the quantitative data (kolichestvenniye)
+# qual is the qualitative data (kachestvenniye)
+# quant is the quantitative data (kolichestvenniye)
 
+
+def dispersion_diagram(data, p1, p2, qual, wid, long, show_axes):
+    u = data[qual].unique()
+    fig, ax = plt.subplots(figsize=(wid, long))
+    for i in range(len(u)):
+        x = data.loc[data[qual] == u[i]][p1]
+        y = data.loc[data[qual] == u[i]][p2]
+        ax.scatter(x, y)
+        # ax.set_xlabel(p1)
+        # ax.set_ylabel(p2)
+        ax.axis(False)
+        # ax.legend(u)
+    return fig
+
+
+def kat_hist(data, par, qual, wid, long, show_axes):
+    c = data[qual].unique()
+    fig, ax = plt.subplots(figsize=(wid, long), nrows=1, ncols=len(c))
+    for i in range(len(c)):
+        x = data.loc[data[qual] == c[i]][par]
+        ax[i].hist(x)
+        ax[i].set_xlabel(par)
+        ax[i].set_title(c[i])
+        ax[i].axis(show_axes)
+    return fig

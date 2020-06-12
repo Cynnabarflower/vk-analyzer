@@ -229,7 +229,7 @@ class AnalyzerPage(Page):
 
             for item in items:
                 b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                             fillcolor='#4978a6', loadcolor='#4978a6'), child_template = SimpleButton(parent=frame, w=130, h=57, padding=5,
+                             fillcolor=Gui.background_color, loadcolor=Gui.background_color, textcolor = '#4978a6'), child_template = SimpleButton(parent=frame, w=130, h=57, padding=5,
                              fillcolor='#91b0cf', loadcolor='#4978a6'), can_choose_multiple = False)
                 b.set_header(item[0])
                 for value in item[1]:
@@ -283,7 +283,7 @@ class AnalyzerPage(Page):
             self.items = items
             t = 0
 
-            graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie']
+            graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie', 'Histogram']
             graph_buttons = []
 
             # Тут создаются кнопки
@@ -300,12 +300,28 @@ class AnalyzerPage(Page):
                 #Непосредственно создание кнопки
                 #В кнопку в onclicked передали лямбда функцию - она выполнится при клике на кнопку
                 #Там как раз и показ графика и выбор столбцов
-                c = SimpleButton(self.frame, onclicked = lambda b: self.clicked(b), w  = 535/4, h=535/4, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
+                c = SimpleButton(self.frame, onclicked = lambda b: self.clicked(b), w  = 535/5, h=535/5, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
                 self.canvases.append(c)
                 self.buttons.append(c)
                 #разместим кнопку на лэйауте
-                c.grid(row=t // 4, column= t % 4, sticky = 'nw')
+                c.grid(row=0, column= t, sticky = 'nw')
                 t += 1
+
+            b_rep = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                                                                textcolor='#4978a6'),
+                            child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
+                            can_choose_multiple=True, onclicked=lambda a: self.radio_clicked(a))
+            b_rep.set_header("Reports:")
+            reps = ['Summary', 'Quality', 'Quantity']
+            for value in reps:
+                b_rep.add_value(value)
+            b_rep.grid(row=1, column=0, sticky='sw', columnspan=5)
+
+            SimpleButton(parent=frame, w=130, h=57, padding=5,
+                         fillcolor=Gui.background_color, loadcolor=Gui.background_color, text = '').grid(row=2, column=0, sticky='sw', columnspan = 0, rowspan=2)
+
             b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
                                                                 fillcolor='#F0F0ED', loadcolor='#F0F0ED', textcolor = '#4978a6'),
                             child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
@@ -314,7 +330,7 @@ class AnalyzerPage(Page):
             b.set_header("Fields:")
             for value in items.values():
                 b.add_value(value[0])
-            b.grid(row=1, column=0, sticky='nw', columnspan = 4)
+            b.grid(row=3, column=0, sticky='sw', columnspan = 5, rowspan=2)
 
         def radio_clicked(self, b):
             selected = b
@@ -402,7 +418,10 @@ class AnalyzerPage(Page):
             elif graph_type == 'Pie':
                 fig = graphs.sweetie_pie(data, 'sex', size = lat, show_labels=show_axes)
             elif graph_type == 'Dispersion':
-                fig = graphs.dispersion_diagram(data, 'id', 'age_years', 'sex', lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Histogram':
+                fig = graphs.kat_hist(data, 'age_years', 'sex', wid=lat, long=long, show_axes=show_axes)
+
             # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
             # fig = Figure(figsize=(1, 1))
             # # a = fig.add_subplot(111)

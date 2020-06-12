@@ -1545,7 +1545,8 @@ class TableWidget(tk.Frame):
     def save_base(self):
         if self.data is not None and self.data.__len__():
             filePath = tk.filedialog.asksaveasfile(mode='w', defaultextension=".csv")
-            self.data.to_csv(filePath)
+            if filePath:
+                self.data.to_csv(filePath, encoding='utf-8',)
 
     def make_search_sequence(self):
         for child in self.settings_container.children.values():
@@ -1650,7 +1651,11 @@ class TableWidget(tk.Frame):
             if field == 'id':
                 continue
             row = Row(container)
-            val = self.data.loc[item.value, field]
+            val = self.data.loc[self.data['id']==item.value, field]
+            if not isinstance(val, pd.Series) or len(val) == 0:
+                val = ""
+            else:
+                val = val.item()
             if pd.isna(val):
                 val = ""
             else:
@@ -1689,9 +1694,9 @@ class TableWidget(tk.Frame):
                 if '!inputfield' in child.children and '!simplebutton' in child.children:
                     t = self.data[child.children['!simplebutton'].text].dtype
                     if t.kind != 'O' and t.kind != 'S' and t.kind != 'U' and not child.children['!inputfield'].text.isnumeric():
-                            self.data.loc[id, child.children['!simplebutton'].text] = 0
+                            self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = 0
                     else:
-                        self.data.loc[id, child.children['!simplebutton'].text] = child.children['!inputfield'].text
+                        self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = child.children['!inputfield'].text
                     self.data[child.children['!simplebutton'].text] = self.data[child.children['!simplebutton'].text].astype(t)
 
         container.grid_forget()
@@ -1997,7 +2002,7 @@ class TableWidget(tk.Frame):
         self.loaded = False
         if self.data.__len__() > 0:
             try:
-                d = self.data.query(self.search_sequence, engine='python').sort_values(by=[field], ascending=ascending)
+                d = self.data.query(self.search_sequence, engine='python',).sort_values(by=[field], ascending=ascending)
             except Exception as e:
                 print(e)
             else:

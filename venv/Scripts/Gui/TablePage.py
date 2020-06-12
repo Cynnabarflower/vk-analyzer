@@ -5,7 +5,7 @@ import Gui.Gui as Gui
 from Gui.Widgets import *
 import moustache_graph as mg
 
-fields = ['id', 'first_name', 'last_name', 'sex', 'nickname', 'bdate', 'city', 'occupation', 'university_name', 'faculty_name', 'graduation', 'education_status', 'detected_region']
+fields = ['id', 'first_name', 'last_name', 'sex', 'nickname', 'followers_count', 'bdate', 'city', 'occupation', 'university_name', 'graduation', 'education_status', 'detected_region']
 
 class TablePage(Page):
     def __init__(self, parent, controller):

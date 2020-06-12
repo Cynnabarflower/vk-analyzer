@@ -22,10 +22,6 @@ class Gui(tk.Tk):
 
     def __init__(self):
         tk.Tk.__init__(self)
-        # self.attributes('-alpha', 0.0)  # For icon
-        # self.iconify()
-        # window = tk.Toplevel(self)# Whatever size
-        # self.overrideredirect(1)  # Remove border
         self.width = 0
         self.timer = None
         self.height = 0
@@ -34,22 +30,9 @@ class Gui(tk.Tk):
         self.initUI()
 
     def initUI(self):
-
         self.minsize(550, 380)
         menubar = tk.Menu(self, bd=-2, borderwidth=0)
         self.config(menu=menubar, bd=-2, borderwidth=0)
-        # pages = [ChooseFilesPage(f), RegionalizePage(f)]
-        # for page in pages:
-        #     page.place(in_=f, x=0, y=0, relwidth=1, relheight=1)
-        # self.show(pages[0])
-        # fileMenu = tk.Menu(menubar)
-        # fileMenu.add_command(label="New", command=lambda: self.page.onNew)
-        # fileMenu.add_command(label="Add file", command=lambda: self.page.addFile())
-        # fileMenu.add_command(label="Add folder", command=lambda: self.page.addFolder)
-        # fileMenu.add_command(label="Save", command=self.onSave)
-        # fileMenu.add_command(label="Save as", command=self.onSaveAs)
-        # fileMenu.add_command(label="Exit", command=self.onExit)
-        # menubar.add_cascade(label="File", menu=fileMenu)
 
         style = ttk.Style()
         style.theme_create("mytheme", parent="alt", settings={
@@ -82,8 +65,6 @@ class Gui(tk.Tk):
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
         self.note.select(0)
         self.page_number = 0
-
-
 
         self.container.bind("<Configure>", self.resize)
 
