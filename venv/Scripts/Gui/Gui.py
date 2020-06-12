@@ -6,6 +6,7 @@ from Gui.TablePage import *
 import tkinter as tk
 from tkinter import ttk
 from threading import Timer
+import pandas as pd
 
 background_color = '#F0F0ED'
 
@@ -138,7 +139,8 @@ class Gui(tk.Tk):
         self.quit()
 
     def update_users(self, users):
-        users = users.reset_index(drop=True)
+        # users = users.reset_index(drop=True)
+        # users.set_index("id",  inplace = True)
         users['sex'] = users['sex'].map(lambda a: ('M' if a == 2 else 'F' if a == 1 else 'NA') if isinstance(a, int) else a)
         self.users = users
         for page in self.pages:

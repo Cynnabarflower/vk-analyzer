@@ -33,7 +33,7 @@ class ChooseFilesPage(Page):
         super().__init__(parent, controller)
         self.filesToRead = []
         self.users = pd.DataFrame(None,
-                                  columns=['id', 'first_name', 'last_name', 'deactivated', 'sex', 'photo', 'online',
+                                  columns=['first_name', 'last_name', 'deactivated', 'sex', 'photo', 'online',
                                            'can_write_private_message', 'can_post'])
         self.messages = pd.DataFrame()
         self.image = None
@@ -488,9 +488,10 @@ class ChooseFilesPage(Page):
             #         else:
             #             self.users = self.users.append(user, ignore_index=True)
             counter += 1
-            self.users = self.users.append(pd.DataFrame(js))
+            self.users = self.users.append(pd.DataFrame(js).set_index("id"))
             q.put((filename, counter / total))
-        self.users = self.users.drop_duplicates(subset='id', keep="last")
+        # self.users = self.users.drop_duplicates(subset='id', keep="last")
+        self.users['id'] = self.users.index
         q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename))
 

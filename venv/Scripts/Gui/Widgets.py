@@ -152,7 +152,7 @@ class HorizontalScrollBar(tk.Frame):
 
 class ScrollList(tk.Frame):
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=(BUTTON_HEIGHT + PADDING) * 4 + PADDING / 2,
-                 bg='#f1f0ec', onclicked=(), items=[], textcolor='#ffffff', figurecolor=None,
+                 bg='#f1f0ec', onclicked=(), ondblclicked = (), items=[], textcolor='#ffffff', figurecolor=None,
                  borderradius=18, fillcolor='#91b0cf', loadcolor='#224b79', choosable=False,
                  padding=(PADDING, PADDING, PADDING, PADDING), item_padding=PADDING,
                  item_height=BUTTON_HEIGHT, item_width=None, progress_offset=0, moved=None, pointerdown=None,
@@ -164,6 +164,7 @@ class ScrollList(tk.Frame):
         self.textcolor = textcolor
         self.backgroundcolor = bg
         self.onclicked = onclicked
+        self.ondblclicked = ondblclicked
         self.borderraadius = borderradius
         self.fillcolor = fillcolor
         self.loadcolor = loadcolor
@@ -181,6 +182,7 @@ class ScrollList(tk.Frame):
         self.moved_buttons = {}
         c = tk.Canvas(self, width=w, height=h, bg=bg, bd=-2)
         c.bind("<Button-1>", self.pointerdown if pointerdown is None else pointerdown)
+        c.bind('<Double-Button-1>', self.dblclicked)
         c.bind("<B1-Motion>", self.moved if moved is None else moved)
         c.bind("<MouseWheel>", self.moved if moved is None else moved)
         c.bind("<ButtonRelease-1>", self.pointerup if pointerup is None else pointerup)
@@ -421,6 +423,15 @@ class ScrollList(tk.Frame):
             self.updatecanvas()
         if self.onclicked:
             self.onclicked(self.buttons[i])
+
+    def dblclicked(self, e):
+        if e.y > self.padding[0] and e.y < self.h * self.scale[1] - self.padding[2]:
+            if self.ondblclicked:
+                for i in range(self.buttons.__len__()):
+                    if e.y >= self.buttons[i].y and e.y <= self.buttons[i].y + self.item_height:
+                        self.ondblclicked(self.buttons[i])
+                        return
+
 
     def pointerup(self, e, update=True):
         if ((e.x - self.pointerx) == 0 and (
@@ -1511,6 +1522,7 @@ class TableWidget(tk.Frame):
         uncheck_all = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='☐',
                                    onclicked=self.uncheck_all, padding=5)
         self.input_row.add(uncheck_all)
+
         delete_checked = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='✗',
                                       onclicked=self.delete_checked, padding=5)
         self.input_row.add(delete_checked)
@@ -1518,7 +1530,7 @@ class TableWidget(tk.Frame):
                                      onclicked=self.show_settings, padding=5, fixed=True)
         self.input_row.add(show_settings)
         save_table = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text="S",
-                                     onclicked=self.show_settings, padding=5, fixed=True)
+                                     onclicked=self.save_base, padding=5, fixed=True)
         self.input_row.add(save_table)
         self.input_row.grid(row=0, column=0, sticky='n')
         # inputfield.grid(row=0, column=0, sticky='n')
@@ -1529,6 +1541,11 @@ class TableWidget(tk.Frame):
         # self.setting_canvas.grid(row=1, column=0)
         #
         # self.updateScrollLists(data)
+
+    def save_base(self):
+        if self.data is not None and self.data.__len__():
+            filePath = tk.filedialog.asksaveasfile(mode='w', defaultextension=".csv")
+            self.data.to_csv(filePath)
 
     def make_search_sequence(self):
         for child in self.settings_container.children.values():
@@ -1614,6 +1631,90 @@ class TableWidget(tk.Frame):
                 result.append(op)
 
         return sequence
+
+
+    def show_edit(self, item):
+        w = self.w * 2 / 3 * self.scale[0]
+        h = self.h * 2 / 3 * self.scale[1]
+        self.scrollList.textcolor = '#aaaaaa'
+        for button in self.scrollList.buttons:
+            button.textcolor = self.scrollList.textcolor
+            button.needsupdate = True
+        self.scrollList.updatecanvas()
+        container = tk.Frame(self, highlightbackground="#4978a6", highlightcolor="#4978a6",
+                                                       highlightthickness=5)
+        header_template = SimpleButton(self, text='ht', w=w / 4, h=h / (self.fields.__len__()-1), borderradius=0, padding=2,
+                                       fillcolor='#4978a6')
+        counter = 0
+        for field in self.available_fields:
+            if field == 'id':
+                continue
+            row = Row(container)
+            val = self.data.loc[item.value, field]
+            if pd.isna(val):
+                val = ""
+            else:
+                val = str(val)
+            simple_button = SimpleButton(
+                    row,
+                    w=header_template.w,
+                    h=header_template.h,
+                    backgroundcolor=header_template.backgroundcolor,
+                    onclicked=None, text=field, icon=None, textcolor=header_template.textcolor,
+                    fillcolor=header_template.fillcolor, loadcolor=header_template.loadcolor,
+                    borderradius=header_template.borderradius,
+                    padding=header_template.padding, font=header_template.font
+                )
+            row.add(simple_button)
+            inputfield = InputField(row, None, 0, 0, (w - header_template.w),
+                                        header_template.h, text=val, bg='#ffffff',
+                                        empty_text='',
+                                        on_enter=None)
+            inputfield.init_canvas()
+            row.add(inputfield)
+            row.grid(row=counter, column=0)
+            counter += 1
+        row = Row(container)
+        button_save = SimpleButton(row, text='Save', w=60, h=20, borderradius=4, padding=4, onclicked=lambda :self.save_changes(container, item.value))
+        button_discard = SimpleButton(row, text='Discard', w=60, h=20, borderradius=4, padding=4, onclicked= lambda: self.discard_changes(container))
+        row.add(button_save)
+        row.add(button_discard)
+        row.grid(row = counter, column = 0)
+        container.grid(row=1, column=0)
+        self.update()
+
+    def save_changes(self, container, id):
+        for child in container.children.values():
+            if isinstance(child, Row):
+                if '!inputfield' in child.children and '!simplebutton' in child.children:
+                    t = self.data[child.children['!simplebutton'].text].dtype
+                    if t.kind != 'O' and t.kind != 'S' and t.kind != 'U' and not child.children['!inputfield'].text.isnumeric():
+                            self.data.loc[id, child.children['!simplebutton'].text] = 0
+                    else:
+                        self.data.loc[id, child.children['!simplebutton'].text] = child.children['!inputfield'].text
+                    self.data[child.children['!simplebutton'].text] = self.data[child.children['!simplebutton'].text].astype(t)
+
+        container.grid_forget()
+        self.scrollList.textcolor = '#224b79'
+        self.scrollList.updatecanvas()
+        self.update()
+        self.search(self.search_sequence)
+
+    def discard_changes(self, container):
+        container.grid_forget()
+        self.scrollList.textcolor = '#224b79'
+        for button in self.scrollList.buttons:
+            button.textcolor = self.scrollList.textcolor
+            button.needsupdate = True
+        self.scrollList.updatecanvas()
+        self.update()
+
+
+    def closeSettings(self):
+        self.settings_container.grid_forget()
+        self.scrollList.textcolor = '#224b79'
+        self.scrollList.updatecanvas()
+        self.update()
 
     def show_settings(self):
         w = self.w * 2 / 3 * self.scale[0]
@@ -1715,11 +1816,19 @@ class TableWidget(tk.Frame):
         row.pack()
 
     def item_clicked(self, item):
+        if not isinstance(item, WideScrollListButton):
+            return
         if item.isChosen:
             self.selectedUsers.add(item.value)
-        else:
+        elif item.value in self.selectedUsers:
             self.selectedUsers.remove(item.value)
         print(self.selectedUsers)
+
+    def item_dblclicked(self, item):
+        if not isinstance(item, WideScrollListButton):
+            return
+        self.show_edit(item)
+
 
     def init_table(self):
         self.init_header(self.fields)
@@ -1729,7 +1838,7 @@ class TableWidget(tk.Frame):
                                      w=self.w,
                                      h=self.h - self.header_height - self.inputfield.h - self.horizontal_scrollbar.scrollbar.h,
                                      fillcolor='white', borderradius=0, textcolor='#224b79', item_height=20,
-                                     item_padding=5, onclicked=self.item_clicked)
+                                     item_padding=5, onclicked=self.item_clicked, ondblclicked=self.item_dblclicked)
         self.scrollList.pack(side='bottom', expand=False, fill='x')
         self.horizontal_scrollbar.add_canvas(self.scrollList.canvas)
         self.horizontal_scrollbar.grid(column=0, row=1, columnspan=1, sticky='nsew')
@@ -1848,6 +1957,8 @@ class TableWidget(tk.Frame):
         self.loadedIndexes = (0, 0)
         self.init_load(0, 50)
         self.inputfield.empty_text = seq if seq != '' else 'Search:'
+
+
 
     def init_load(self, a, b):
         if self.load_thread:
