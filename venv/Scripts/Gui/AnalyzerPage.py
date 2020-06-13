@@ -4,6 +4,7 @@ from tkinter import ttk
 import Gui.Gui as Gui
 from Gui.Widgets import *
 import matplotlib
+
 matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -47,9 +48,11 @@ class AnalyzerPage(Page):
         if 'detected_region' in data:
             items['region'] = ['region']
 
+        items['followers_count'] = ['followers']
+        items['region'] = ['region']
         self.items = items
 
-    def calc_age(self,  bday):
+    def calc_age(self, bday):
         if not bday is np.nan:
             bday = bday.split('.')
             if len(bday) == 3:
@@ -62,7 +65,6 @@ class AnalyzerPage(Page):
                 return -1
         else:
             return -1
-
 
     def init_pages(self):
 
@@ -86,14 +88,15 @@ class AnalyzerPage(Page):
                      onclicked=lambda: self.fields_selected() or self.note.select(1) or self.navigationNote.select(1),
                      w=550, h=57,
                      padding=5).grid(row=5, column=0,
-                                     columnspan= 1 if self.page1.buttons.__len__() < 5 else self.page1.buttons.__len__() - 3 if self.page1.buttons.__len__() < 7 else 4,
+                                     columnspan=1 if self.page1.buttons.__len__() < 5 else self.page1.buttons.__len__() - 3 if self.page1.buttons.__len__() < 7 else 4,
                                      sticky='s')
         self.navigationNote.add(frame)
         frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
         frame.configure(background=Gui.background_color, bd=-2)
         self.navigationNote.add(frame)
         SimpleButton(parent=frame, text="Done!",
-                     onclicked=lambda: self.show_plot() or self.note.select(self.note.pages.__len__()-1) or self.navigationNote.select(2),
+                     onclicked=lambda: self.show_plot() or self.note.select(
+                         self.note.pages.__len__() - 1) or self.navigationNote.select(2),
                      w=290, h=57, padding=5).grid(row=5,
                                                   column=1,
                                                   pady=0,
@@ -111,15 +114,16 @@ class AnalyzerPage(Page):
         self.navigationNote.add(frame)
         SimpleButton(parent=frame, text="Back",
                      onclicked=lambda: self.note.select(
-                         previous=True) or self.note.remove(self.note.pages.__len__() - 1) or self.navigationNote.select(
+                         previous=True) or self.note.remove(
+                         self.note.pages.__len__() - 1) or self.navigationNote.select(
                          1) or self.note.current_index == 0 and self.navigationNote.select(0), w=550, h=57,
                      padding=5).grid(row=5, column=0)
 
         self.note.select(0)
         self.navigationNote.select(0)
         self.rowconfigure(0, weight=1)
-        self.note.grid(column = 0, row = 0, sticky = 'n')
-        self.navigationNote.grid(column=0, row=1, sticky = 's')
+        self.note.grid(column=0, row=0, sticky='n')
+        self.navigationNote.grid(column=0, row=1, sticky='s')
         # self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
         # self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
 
@@ -130,7 +134,6 @@ class AnalyzerPage(Page):
         if self.navigationNote:
             self.navigationNote.forget()
         self.init_pages()
-
 
     def fields_selected(self):
         selected = []
@@ -147,7 +150,7 @@ class AnalyzerPage(Page):
                     self.page2 = self._Page2(frame, items=selected)
                     selected = []
         if selected.__len__() > 0:
-            frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height = 550)
+            frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, height=550)
             self.note.add(frame)
             frame.configure(background=Gui.background_color, bd=-2)
             self.page2 = self._Page2(frame, items=selected)
@@ -158,11 +161,11 @@ class AnalyzerPage(Page):
         print('Analyzer resized')
         # self.note.resize(w, h, aw, ah, all=True)
         if self.page1:
-            self.page1.resize(w,h,aw,ah)
+            self.page1.resize(w, h, aw, ah)
         if self.page2:
             self.page2.resize(w, h, aw, ah)
         if self.page3:
-            self.page3.resize(w,h,aw,ah)
+            self.page3.resize(w, h, aw, ah)
         for f in self.navigationNote.pages:
             if hasattr(f, 'resize'):
                 f.resize(w, h, aw, ah)
@@ -180,9 +183,8 @@ class AnalyzerPage(Page):
             self.page3 = self._Page3(frame, self.controller, self.page2.get_chosen())
             self.plot()
 
-    def plot (self):
+    def plot(self):
         print('')
-
 
     class _Page1:
         def __init__(self, frame, items):
@@ -198,22 +200,21 @@ class AnalyzerPage(Page):
                                  padding=5, fixed=True, fillcolor='#91b0cf', loadcolor='#4978a6')
                 self.buttons.append(b)
 
-                b.grid(row=i // 4 + 1, column=i % 4, sticky = 'nw')
+                b.grid(row=i // 4 + 1, column=i % 4, sticky='nw')
                 i += 1
 
             while i < 16:
-
                 b = SimpleButton(parent=frame,
-                             w=130, h=57, padding=5,
-                             fillcolor=Gui.background_color, loadcolor=Gui.background_color)
-                b.grid(row=i // 4 + 1,column=i % 4, sticky = 'nw')
+                                 w=130, h=57, padding=5,
+                                 fillcolor=Gui.background_color, loadcolor=Gui.background_color)
+                b.grid(row=i // 4 + 1, column=i % 4, sticky='nw')
                 self.buttons.append(b)
                 i += 1
 
         def resize(self, w, h, aw, ah):
             for b in self.buttons:
                 if b:
-                    b.resize(w,h, aw, ah)
+                    b.resize(w, h, aw, ah)
 
     class _Page2:
         def __init__(self, frame, items):
@@ -229,8 +230,12 @@ class AnalyzerPage(Page):
 
             for item in items:
                 b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                             fillcolor=Gui.background_color, loadcolor=Gui.background_color, textcolor = '#4978a6'), child_template = SimpleButton(parent=frame, w=130, h=57, padding=5,
-                             fillcolor='#91b0cf', loadcolor='#4978a6'), can_choose_multiple = False)
+                                                                    fillcolor=Gui.background_color,
+                                                                    loadcolor=Gui.background_color,
+                                                                    textcolor='#4978a6'),
+                                child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                                                            fillcolor='#91b0cf', loadcolor='#4978a6'),
+                                can_choose_multiple=False)
                 b.set_header(item[0])
                 for value in item[1]:
                     b.add_value(value)
@@ -240,9 +245,8 @@ class AnalyzerPage(Page):
                     b.values[0].state = True
                     b.values[0].updatecanvas()
                 self.buttons.append(b)
-                b.grid(row=t, column=0, sticky = 'nw')
+                b.grid(row=t, column=0, sticky='nw')
                 t += 1
-
 
             #     SimpleButton(parent=frame, text=item[0],
             #                  onclicked=lambda: print(i), w=130, h=57, padding=5, fixed=True,
@@ -255,11 +259,11 @@ class AnalyzerPage(Page):
             #     t += 1
             while t < 4:
                 b = SimpleButton(parent=frame,
-                             w=130, h=57, padding=5,
-                             fillcolor=Gui.background_color, loadcolor=Gui.background_color)
+                                 w=130, h=57, padding=5,
+                                 fillcolor=Gui.background_color, loadcolor=Gui.background_color)
                 self.buttons.append(b)
                 b.grid(row=t + 1,
-                      column=0)
+                       column=0)
                 t += 1
 
         def get_chosen(self):
@@ -272,7 +276,7 @@ class AnalyzerPage(Page):
         def resize(self, w, h, aw, ah):
             for b in self.buttons:
                 if b:
-                    b.resize(w,h, aw, ah)
+                    b.resize(w, h, aw, ah)
 
     class _Page3:
         def __init__(self, frame, controller, items):
@@ -287,64 +291,78 @@ class AnalyzerPage(Page):
             graph_buttons = []
 
             # Тут создаются кнопки
-            #Кстати ctrl+click по вызову функции - перейти к объявлению функции
+            # Кстати ctrl+click по вызову функции - перейти к объявлению функции
             for graph in graphs:
-                #Для каждого типа графика получим фигуру на основании 40 случайных элементов
-                fig = self.get_plot(self.controller.get_users().sample(min(40, self.controller.get_users().__len__())), graph)
+                # Для каждого типа графика получим фигуру на основании 40 случайных элементов
+                fig = self.get_plot(self.controller.get_users().sample(min(40, self.controller.get_users().__len__())),
+                                    graph)
                 self.fig = None
-                #Сохраним эту фигуру как картинку
+                # Сохраним эту фигуру как картинку
                 fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-                #Эти 2 строки мб можно убрать
+                # Эти 2 строки мб можно убрать
                 matplotlib.pyplot.clf()
                 matplotlib.pyplot.cla()
-                #Непосредственно создание кнопки
-                #В кнопку в onclicked передали лямбда функцию - она выполнится при клике на кнопку
-                #Там как раз и показ графика и выбор столбцов
-                c = SimpleButton(self.frame, onclicked = lambda b: self.clicked(b), w  = 535/5, h=535/5, text = str(graph), icon = tk.PhotoImage(file='figure1.png'), fillcolor = '#91b0cf')
+                # Непосредственно создание кнопки
+                # В кнопку в onclicked передали лямбда функцию - она выполнится при клике на кнопку
+                # Там как раз и показ графика и выбор столбцов
+                c = SimpleButton(self.frame, onclicked=lambda b: self.clicked(b), w=525 / 5, h=525 / 5, text=str(graph),
+                                 icon=tk.PhotoImage(file='figure1.png'), fillcolor='#91b0cf')
                 self.canvases.append(c)
                 self.buttons.append(c)
-                #разместим кнопку на лэйауте
-                c.grid(row=0, column= t, sticky = 'nw')
+                # разместим кнопку на лэйауте
+                c.grid(row=0, column=t, sticky='nw')
                 t += 1
 
-            b_rep = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+            SimpleButton(parent=frame, w=210, h=57, padding=5, text='Statistical reports:',
+                         fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                         textcolor='#4978a6').grid(row=1, column=0, sticky='sw', columnspan=2)
+            SimpleButton(parent=frame, w=105, h=57, padding=5, text='Summary',
+                         fillcolor='#91b0cf', loadcolor='#4978a6', onclicked=self.reports_clicked).grid(row=1, column=2,
+                                                                                                        sticky='sw')
+            SimpleButton(parent=frame, w=105, h=57, padding=5, text='Quality',
+                         fillcolor='#91b0cf', loadcolor='#4978a6', onclicked=self.reports_clicked).grid(row=1, column=3,
+                                                                                                        sticky='sw')
+            SimpleButton(parent=frame, w=105, h=57, padding=5, text='Quantity',
+                         fillcolor='#91b0cf', loadcolor='#4978a6', onclicked=self.reports_clicked).grid(row=1, column=4,
+                                                                                                        sticky='sw')
+
+            SimpleButton(parent=frame, w=105, h=57, padding=5,
+                         fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='').grid(row=2, column=4,
+                                                                                                       sticky='sw')
+            b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=105, h=57, padding=5,
                                                                 fillcolor='#F0F0ED', loadcolor='#F0F0ED',
                                                                 textcolor='#4978a6'),
-                            child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
+                            child_template=SimpleButton(parent=frame, w=105, h=57, padding=5,
                                                         fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked=lambda a: self.radio_clicked(a))
-            b_rep.set_header("Reports:")
-            reps = ['Summary', 'Quality', 'Quantity']
-            for value in reps:
-                b_rep.add_value(value)
-            b_rep.grid(row=1, column=0, sticky='sw', columnspan=5)
-
-            SimpleButton(parent=frame, w=130, h=57, padding=5,
-                         fillcolor=Gui.background_color, loadcolor=Gui.background_color, text = '').grid(row=2, column=0, sticky='sw', columnspan = 0, rowspan=2)
-
-            b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED', textcolor = '#4978a6'),
-                            child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked = lambda a: self.radio_clicked(a))
+                            can_choose_multiple=True, onclicked=None)
             b.set_header("Fields:")
             for value in items.values():
                 b.add_value(value[0])
-            b.grid(row=3, column=0, sticky='sw', columnspan = 5, rowspan=2)
+            b.grid(row=3, column=0, sticky='sw', columnspan=5, rowspan=2)
 
-        def radio_clicked(self, b):
-            selected = b
-            flags = [1,1,1,1]
-            if not "age_years" in b \
-                    or b.__len__() != 2:
-                flags[0] = 0
-            if b.__len__() != 3 or "age_years" not in b:
-                flags[1] = 0
-            if b.__len__() != 3 or "age_years" not in b:
-                flags[2] = 0
-            if b.__len__() != 1 or "age_years" in b:
-                flags[3] = 0
-            self.available(flags)
+            self.agg_radio = RadioButton(frame, header_template=SimpleButton(parent=frame, w=105, h=57, padding=5,
+                                                                             fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                                                                             textcolor='#4978a6'),
+                                         child_template=SimpleButton(parent=frame, w=75, h=57, padding=5,
+                                                                     fillcolor='#91b0cf', loadcolor='#4978a6'),
+                                         can_choose_multiple=False)
+            self.agg_radio.set_header("Aggregation:")
+            aggs = ['count', 'sum', 'min', 'max', 'mean', 'median']
+            for val in aggs:
+                self.agg_radio.add_value(val)
+            self.agg_radio.grid(row=2, column=0, sticky='sw', columnspan=5, rowspan=1)
+
+        def reports_clicked(self, b):
+            if b.text == 'Summary':
+                pass
+                # graphs.piv()
+            elif b.text == 'Quality':
+                graphs.stkol()
+                pass
+            elif b.text == 'Quantity':
+                # graph.stkach()
+                pass
+            pass
 
         def available(self, flags):
             for i in range(flags.__len__()):
@@ -365,10 +383,10 @@ class AnalyzerPage(Page):
             if flags[3]:
                 self.buttons[3].set_text("Пирог")
             for i in range(flags.__len__()):
-                    self.buttons[i].updatecanvas()
+                self.buttons[i].updatecanvas()
 
         def clicked(self, b):
-            #Дальше в init_show_graph (ctrl+click)
+            # Дальше в init_show_graph (ctrl+click)
             self.init_show_graph(b.text)
             b.updatecanvas(b.fillcolor)
             b.update()
@@ -389,13 +407,12 @@ class AnalyzerPage(Page):
             # multiprocessing.Process(target=lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
             self.wait_plot()
 
-
         def set_fig(self, fig):
             self.fig = fig
 
         def wait_plot(self):
-            #Эта функция была нужна т.к я надеялся строить в другом потоке и каждые пол секунды проверять построился ли график
-            #Теперь она по сути не нужна и выполняет функцию просто прослойки
+            # Эта функция была нужна т.к я надеялся строить в другом потоке и каждые пол секунды проверять построился ли график
+            # Теперь она по сути не нужна и выполняет функцию просто прослойки
             if self.fig:
                 graphs.show_graph(self.fig)
                 matplotlib.pyplot.clf()
@@ -403,20 +420,20 @@ class AnalyzerPage(Page):
             else:
                 self.controller.after(500, self.wait_plot)
 
-        def get_plot(self, data, graph_type, lat = 1, long = 1, show_axes = False):
-            #Вот эту функцию надо изменить.
+        def get_plot(self, data, graph_type, lat=1, long=1, show_axes=False):
+            # Вот эту функцию надо изменить.
             # Надо добавить аргумент - массив (список) имен полей
             # Чтобы напрмер было: graphs.moustache(data, fields[0], fields[1], lat=lat, long=long, show_axes = show_axes)
-            #Это не всё. Еще надо чтобы при создании кнопки сохранялиь поля с которыми она будет вызывать график
-            #Чтобы одна кнопка вызывала Pie про sex, другая - Pie про age и тд
-            #Для этого в массив buttons куда добовляется конпка можно добавлять не кнопку, а tuple например (button, ["field1", "field2", ...)
-            #Этот массив используется в функции resize надо там соответственно чтобы не сломалось, вроде больше ни где не используется.
+            # Это не всё. Еще надо чтобы при создании кнопки сохранялиь поля с которыми она будет вызывать график
+            # Чтобы одна кнопка вызывала Pie про sex, другая - Pie про age и тд
+            # Для этого в массив buttons куда добовляется конпка можно добавлять не кнопку, а tuple например (button, ["field1", "field2", ...)
+            # Этот массив используется в функции resize надо там соответственно чтобы не сломалось, вроде больше ни где не используется.
             if (graph_type) == 'Moustache':
-                fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes = show_axes)
+                fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Cluster':
                 fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Pie':
-                fig = graphs.sweetie_pie(data, 'sex', size = lat, show_labels=show_axes)
+                fig = graphs.sweetie_pie(data, 'sex', size=lat, show_labels=show_axes)
             elif graph_type == 'Dispersion':
                 fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Histogram':
@@ -442,7 +459,7 @@ class AnalyzerPage(Page):
         def resize(self, w, h, aw, ah):
             for b in self.buttons:
                 if b:
-                    b.resize(w,h, aw, ah)
+                    b.resize(w, h, aw, ah)
 
         # def get_clickable_canvas(self, w, h, onclicked):
         #     def clicked(e):
@@ -450,11 +467,11 @@ class AnalyzerPage(Page):
         #             onclicked()
         #
         #
-            # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-            # canvas = FigureCanvasTkAgg(fig, master=self.frame)
-            # c = canvas.get_tk_widget()
-            # c.configure(height=h, width = w, bd = 2)
-            # canvas.draw()
-            # # canvas = tk.Canvas(self.frame, width=w, height=h, bg = 'blue')
-            # c.bind('<Button-1>', clicked)
-            # return c
+        # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
+        # canvas = FigureCanvasTkAgg(fig, master=self.frame)
+        # c = canvas.get_tk_widget()
+        # c.configure(height=h, width = w, bd = 2)
+        # canvas.draw()
+        # # canvas = tk.Canvas(self.frame, width=w, height=h, bg = 'blue')
+        # c.bind('<Button-1>', clicked)
+        # return c

@@ -227,3 +227,52 @@ def kat_hist(data, par, qual, wid, long, show_axes):
         ax[i].set_title(c[i])
         ax[i].axis(show_axes)
     return fig
+
+
+def stkach(dframe, qual):
+    """
+    Maidzhe Alexandra
+    Creates a new data frame with frequencies and percentage
+    of each element of a given data frame column.
+    :param dframe: data frame
+    :param qual: name of the column with the qualitative data;
+    :return: data frame
+    """
+    # Creating new data frame with frequencies
+    m = dframe[qual].value_counts().to_frame()
+    m.columns = ['Частота']
+    # Adding a column with percentages
+    m['Процент(%)'] = dframe[qual].value_counts(normalize=True)*100
+    return m
+
+
+def stkol(dframe):
+    """
+    Maidzhe Alexandra
+    Creates a data frame with quantitative data's statistics.
+    :param dframe: data frame
+    :return: data frame
+    """
+    # dropping columns that are numeric but do not have quantitative data
+    dframe = dframe.drop(columns=['sex', 'id', 'bdate'])
+    # Selecting all columns with numeric values left
+    if not dframe.select_dtypes(include='number').empty:
+        # and creating a new data frame with the statistics
+        m = dframe.describe().transpose()
+        m.columns = ['Amount of data', 'Arithmetic mean', 'Standard deviation',
+                     'Minimum', 'Quartile 1', 'Quartile 2', 'Quartile 3', 'Maximum']
+        return m
+
+
+def piv(dframe, qual1, qual2, aggname):
+    """
+    Maidzhe Alexandra
+    Creates pivot table of two
+    data frame's columns(qualitative data)
+    :param dframe: data frame
+    :param qual1: name of the column with the qualitative data for index(str);
+    :param qual2: name of the column with the qualitative data for columns(str);
+    :param aggname: name of the aggregation function to apply(str);
+    :return: data frame;
+    """
+    return dframe.pivot_table(index=qual1, columns=qual2, fill_value=0, aggfunc=aggname)

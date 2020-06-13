@@ -513,8 +513,11 @@ class ChooseFilesPage(Page):
                 users['university_name'].fillna('', inplace=True)
                 users['education_status'].fillna('', inplace=True)
 
+                users['id'] = users['id'].astype('int32')
+
 
                 self.users = self.users.append(users)
+                self.users['id'] = self.users['id'].astype('int32')
                 q.put((filename, counter / total))
                 # self.users['id'] = self.users.index
         self.users = self.users.drop_duplicates(subset='id', keep="last")

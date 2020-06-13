@@ -73,16 +73,16 @@ class RegionalizePage(Page):
         self.row = row =  Row(self)
         row.grid(column = 1, row = 2, sticky='n')
         row.add(
-            SimpleButton(parent=row, text='123', h = 50, w = 90),
-            SimpleButton(parent=row, text='123', h = 50, w = 90),
-        SimpleButton(parent=row, text='123', h = 50, w = 90),
+            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
+            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
+        SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
         SimpleButton(parent=row, text='', h = 50, w = 90, icon=tk.PhotoImage(file='Gui/search.png'), fillcolor = '', loadcolor = '', onclicked = lambda: self.open_new()))
 
         self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize(), w=360,
                                       h=105, backgroundcolor = Gui.background_color)
         self.button1.grid(column=1, row=3)
 
-        HorizontalScrollBar(self).grid(row = 0, column = 1)
+        # HorizontalScrollBar(self).grid(row = 0, column = 1)
 
 
     def open_new(self):

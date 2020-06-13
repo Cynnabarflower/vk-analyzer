@@ -981,7 +981,7 @@ class RadioButton(tk.Frame):
             padding=self.child_template.padding, font=self.child_template.font, fixed=True
         )
         child.onclicked = lambda a: self.chosen(a)
-        child.grid(column=1 + self.children.__len__(), row=0)
+        child.grid(column= 1 + self.children.__len__(), row=0)
         child.updatecanvas()
         self.values.append(child)
 
@@ -1852,6 +1852,7 @@ class TableWidget(tk.Frame):
         return lambda: foo(arg.encode().decode())
 
     def fill_scroll_lists(self, data, a=0, b=6):
+
         # a = max(a, 0)
         # b = min(b, self.data.__len__())
         #
@@ -1899,6 +1900,11 @@ class TableWidget(tk.Frame):
         # self.loadedIndexes = (min(self.loadedIndexes[0], a), max(self.loadedIndexes[1], b))
         self.loadedIndexes = (0, self.scrollList.buttons.__len__())
         # self.init_header(self.available_fields)
+        self.data['id'] = self.data['id'].astype('int32')
+        # if 'followers_count' in self.data.columns:
+        #     self.data['followers_count'] = self.data['followers_count'].astype('int32')
+        # if 'graduation' in self.data.columns:
+        #         self.data['graduation'] = self.data['graduation'].astype('int32')
         print('Filled ', self.loadedIndexes)
 
     def pointerdown(self, e):
