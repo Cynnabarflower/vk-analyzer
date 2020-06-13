@@ -18,10 +18,13 @@ import datanaliser
 class AnalyzerPage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.buttons = []
         self.data = None
         self.note = None
+        self.scale = (1.0, 1.0)
         self.navigationNote = None
         self.page1 = self.page2 = self.page3 = None
+        self.top_canvas = None
         self.init_pages()
 
     def setup_items(self, data):
@@ -66,7 +69,84 @@ class AnalyzerPage(Page):
         else:
             return -1
 
+
     def init_pages(self):
+        if self.note:
+            self.note.grid_forget()
+        if self.data is None or self.data.__len__() == 0:
+            self.textCanvas = tk.Canvas(self, width=550, height=57, bg=Gui.background_color, bd=-2)
+            self.textCanvas.create_text(275, 7, text='No data to analyze', font=("Colibri", 20), fill='#4978a6',
+                                        anchor="n")
+            self.textCanvas.grid(column=0, row=0)
+            return
+
+
+        # self.note = Note(self)
+        # self.note.grid(column=0, row=1, columnspan=5)
+        # frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, height=57)
+        # self.note.add(frame)
+        # frame.configure(background=Gui.background_color, bd=-2)
+
+        self.canvases = []
+        self.buttons = []
+        self.top_canvas_windows = []
+        t = 0
+        self.items = {}
+        self.setup_items(self.data)
+        self.top_canvas = tk.Canvas(self, width = 550, height = 114, bg=Gui.background_color, bd=-2)
+        self.top_canvas.grid(column = 0, row = 0, columnspan = 5)
+
+        graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie', 'Histogram']
+
+        for graph in graphs:
+            fig = self.get_plot(self.data.sample(min(50, self.data.__len__())),
+                                graph)
+            self.fig = None
+            fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf', pad_inches=0)
+            matplotlib.pyplot.clf()
+            matplotlib.pyplot.cla()
+            c = SimpleButton(self, onclicked=lambda b: self.clicked(b), w=550 / 5, h=550 / 5, text=str(graph),
+                             icon=tk.PhotoImage(file='figure1.png'), fillcolor='#91b0cf', padding = 5)
+            self.canvases.append(c)
+            self.buttons.append(c)
+            self.top_canvas_windows.append([self.top_canvas.create_window(t * 550/5, 0, window=c, anchor = 'nw'), t * 550/5, 0])
+            # c.grid(row=2, column=t, sticky='nw')
+            t += 1
+        t = 0
+        textCanvas = tk.Canvas(self, width=550, height=37, bg=Gui.background_color, bd=-2)
+        textCanvas.create_text(275, 4, text='Qualicative', font=("Colibri", 20), fill='#4978a6',
+                                    anchor="n")
+        textCanvas.grid(column=0, row=2)
+
+        b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                                                                textcolor='#4978a6'),
+                            child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
+                            can_choose_multiple=True, onclicked=None)
+        # b.set_header("Qualicative:")
+        b.add_value('bday')
+        b.add_value('sex')
+        b.add_value('education_status')
+        b.add_value('region')
+        b.grid(row = 3, column = 0, columnspan = 5)
+        self.textCanvas = tk.Canvas(self, width=550, height=37, bg=Gui.background_color, bd=-2)
+        self.textCanvas.create_text(275, 4, text='Quantitive', font=("Colibri", 20), fill='#4978a6',
+                                    anchor="n")
+        self.textCanvas.grid(column=0, row=4)
+
+        b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                                                                textcolor='#4978a6'),
+                            child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
+                            can_choose_multiple=True, onclicked=None)
+        # b.set_header("Quantitive:")
+        b.add_value('age')
+        b.add_value('followers_count')
+        b.grid(row=5, column=0, columnspan=2)
+        return
+
 
         if self.navigationNote:
             self.navigationNote.grid_forget()
@@ -127,6 +207,51 @@ class AnalyzerPage(Page):
         # self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
         # self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
 
+    def clicked(self, b):
+        self.init_show_graph(b.text, b)
+
+    def init_show_graph(self, name, b):
+        self.fig = None
+        users = self.controller.get_users()
+        if users.__len__() > 3000:
+            users = users.sample(3000)
+        self.fig = self.get_plot(users, name, lat=5, long=8, show_axes=True)
+        b.updatecanvas(b.fillcolor)
+        b.update()
+        if self.fig:
+            graphs.show_graph(self.fig)
+            matplotlib.pyplot.clf()
+            matplotlib.pyplot.cla()
+
+    def get_plot(self, data, graph_type, lat=1, long=1, show_axes=False):
+        if (graph_type) == 'Moustache':
+            fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes=show_axes)
+        elif graph_type == 'Cluster':
+            fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
+        elif graph_type == 'Pie':
+            fig = graphs.sweetie_pie(data, 'sex', size=lat, show_labels=show_axes)
+        elif graph_type == 'Dispersion':
+            fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
+        elif graph_type == 'Histogram':
+            fig = graphs.kat_hist(data, 'age_years', 'sex', wid=lat, long=long, show_axes=show_axes)
+
+        # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
+        # fig = Figure(figsize=(1, 1))
+        # # a = fig.add_subplot(111)
+        # fig = data.plot(kind='bar', figsize = (1,1), legend = False, use_index = False)
+        # # fig.axes('off')
+        # # a.scatter(v, x, color='red')
+        # # a.plot(p, range(2 + max(x)), color='blue')
+        # # a.axis('off')
+        #
+        # # a.invert_yaxis()
+        # fig.subplots_adjust(wspace=0, hspace=0)
+        # fig.set_facecolor('#91b0cf')
+        # # a.set_title ("Estimation Grid", fontsize=16)
+        # # a.set_ylabel("Y", fontsize=14)
+        # # a.set_xlabel("X", fontsize=14)
+        return fig
+
     def update_users(self, users):
         self.data = users
         if self.note:
@@ -159,21 +284,23 @@ class AnalyzerPage(Page):
 
     def resize(self, w, h, aw, ah):
         print('Analyzer resized')
-        # self.note.resize(w, h, aw, ah, all=True)
-        if self.page1:
-            self.page1.resize(w, h, aw, ah)
-        if self.page2:
-            self.page2.resize(w, h, aw, ah)
-        if self.page3:
-            self.page3.resize(w, h, aw, ah)
-        for f in self.navigationNote.pages:
-            if hasattr(f, 'resize'):
-                f.resize(w, h, aw, ah)
-            elif hasattr(f, 'children'):
-                for ch in f.children.values():
-                    if hasattr(ch, 'resize'):
-                        ch.resize(w, h, aw, ah)
-        self.navigationNote.resize(w, h, aw, ah, all=True)
+        if self.top_canvas:
+            self.top_canvas.configure(width=aw * 550, height=ah * 550 / 5)
+            for win in self.top_canvas_windows:
+                self.top_canvas.move(win[0], win[1] * (aw-self.scale[0]), 0)
+            for b in self.buttons:
+                b.resize(min(w, h), min(w, h), min(aw, ah), min(aw, ah))
+        self.scale = (aw, ah)
+
+
+        # for f in self.navigationNote.pages:
+        #     if hasattr(f, 'resize'):
+        #         f.resize(w, h, aw, ah)
+        #     elif hasattr(f, 'children'):
+        #         for ch in f.children.values():
+        #             if hasattr(ch, 'resize'):
+        #                 ch.resize(w, h, aw, ah)
+        # self.navigationNote.resize(w, h, aw, ah, all=True)
 
     def show_plot(self):
         if self.controller.get_users() is not None:
@@ -182,101 +309,6 @@ class AnalyzerPage(Page):
             frame.configure(background=Gui.background_color, bd=-2)
             self.page3 = self._Page3(frame, self.controller, self.page2.get_chosen())
             self.plot()
-
-    def plot(self):
-        print('')
-
-    class _Page1:
-        def __init__(self, frame, items):
-            self.items = items
-            self.textCanvas = tk.Canvas(frame, width=550, height=57, bg=Gui.background_color, bd=-2)
-            self.textCanvas.create_text(275, 7, text='Choose fields to analyze', font=("Colibri", 20), fill='#4978a6',
-                                        anchor="n")
-            self.textCanvas.grid(row=0, column=0, columnspan=4)
-            self.buttons = []
-            i = 0
-            for item in self.items:
-                b = SimpleButton(parent=frame, text=item, onclicked=lambda: print(item), w=130, h=57,
-                                 padding=5, fixed=True, fillcolor='#91b0cf', loadcolor='#4978a6')
-                self.buttons.append(b)
-
-                b.grid(row=i // 4 + 1, column=i % 4, sticky='nw')
-                i += 1
-
-            while i < 16:
-                b = SimpleButton(parent=frame,
-                                 w=130, h=57, padding=5,
-                                 fillcolor=Gui.background_color, loadcolor=Gui.background_color)
-                b.grid(row=i // 4 + 1, column=i % 4, sticky='nw')
-                self.buttons.append(b)
-                i += 1
-
-        def resize(self, w, h, aw, ah):
-            for b in self.buttons:
-                if b:
-                    b.resize(w, h, aw, ah)
-
-    class _Page2:
-        def __init__(self, frame, items):
-            self.items = items
-            self.textCanvas = tk.Canvas(frame, width=550, height=45, bg=Gui.background_color, bd=-2)
-            self.textCanvas.create_text(275, 7, text='Choose analyse properities', font=("Colibri", 20), fill='#4978a6',
-                                        anchor="n")
-            self.textCanvas.grid(row=0, column=0, columnspan=4)
-            self.buttons = []
-            self.props = []
-            i = 0
-            t = 1
-
-            for item in items:
-                b = RadioButton(frame, header_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                                                                    fillcolor=Gui.background_color,
-                                                                    loadcolor=Gui.background_color,
-                                                                    textcolor='#4978a6'),
-                                child_template=SimpleButton(parent=frame, w=130, h=57, padding=5,
-                                                            fillcolor='#91b0cf', loadcolor='#4978a6'),
-                                can_choose_multiple=False)
-                b.set_header(item[0])
-                for value in item[1]:
-                    b.add_value(value)
-
-                if item[1].__len__() == 1:
-                    b.chosen(b.values[0])
-                    b.values[0].state = True
-                    b.values[0].updatecanvas()
-                self.buttons.append(b)
-                b.grid(row=t, column=0, sticky='nw')
-                t += 1
-
-            #     SimpleButton(parent=frame, text=item[0],
-            #                  onclicked=lambda: print(i), w=130, h=57, padding=5, fixed=True,
-            #                  fillcolor='#4978a6', loadcolor='#4978a6').grid(row=t % 4 + 1, column=0)
-            #     for i in range(item[1].__len__()):
-            #         b = SimpleButton(parent=frame, text=item[1][i], onclicked=lambda: print(i), w=130, h=57, padding=5,
-            #                          fixed=True, fillcolor='#91b0cf', loadcolor='#4978a6')
-            #         self.buttons.append(b)
-            #         b.grid(row=t % 4 + 1, column=i % 3 + 1)
-            #     t += 1
-            while t < 4:
-                b = SimpleButton(parent=frame,
-                                 w=130, h=57, padding=5,
-                                 fillcolor=Gui.background_color, loadcolor=Gui.background_color)
-                self.buttons.append(b)
-                b.grid(row=t + 1,
-                       column=0)
-                t += 1
-
-        def get_chosen(self):
-            chosen = {}
-            for b in self.buttons:
-                if isinstance(b, RadioButton):
-                    chosen[b.header.text] = b.get_selected()
-            return chosen
-
-        def resize(self, w, h, aw, ah):
-            for b in self.buttons:
-                if b:
-                    b.resize(w, h, aw, ah)
 
     class _Page3:
         def __init__(self, frame, controller, items):
@@ -402,17 +434,12 @@ class AnalyzerPage(Page):
             # Я не помню почему просто не написал self.figure = self.get_plot(...)
             # В общем надо перелать get_plot - добавить ввод массива имен полей
             self.set_fig(self.get_plot(users, name, lat=5, long=8, show_axes=True))
-            # self.tt = Thread(target= lambda : self.set_fig(self.get_plot(self.controller.get_users(), name, lat = 5, long= 8, show_axes=True)))
-            # self.tt.start()
-            # multiprocessing.Process(target=lambda : self.set_fig(self.get_plot(self.controller.get_users().head(30), lat = 5, long= 8, show_axes=True))).start()
             self.wait_plot()
 
         def set_fig(self, fig):
             self.fig = fig
 
         def wait_plot(self):
-            # Эта функция была нужна т.к я надеялся строить в другом потоке и каждые пол секунды проверять построился ли график
-            # Теперь она по сути не нужна и выполняет функцию просто прослойки
             if self.fig:
                 graphs.show_graph(self.fig)
                 matplotlib.pyplot.clf()
@@ -421,13 +448,7 @@ class AnalyzerPage(Page):
                 self.controller.after(500, self.wait_plot)
 
         def get_plot(self, data, graph_type, lat=1, long=1, show_axes=False):
-            # Вот эту функцию надо изменить.
-            # Надо добавить аргумент - массив (список) имен полей
-            # Чтобы напрмер было: graphs.moustache(data, fields[0], fields[1], lat=lat, long=long, show_axes = show_axes)
-            # Это не всё. Еще надо чтобы при создании кнопки сохранялиь поля с которыми она будет вызывать график
-            # Чтобы одна кнопка вызывала Pie про sex, другая - Pie про age и тд
-            # Для этого в массив buttons куда добовляется конпка можно добавлять не кнопку, а tuple например (button, ["field1", "field2", ...)
-            # Этот массив используется в функции resize надо там соответственно чтобы не сломалось, вроде больше ни где не используется.
+            fig = None
             if (graph_type) == 'Moustache':
                 fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Cluster':
@@ -438,40 +459,4 @@ class AnalyzerPage(Page):
                 fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Histogram':
                 fig = graphs.kat_hist(data, 'age_years', 'sex', wid=lat, long=long, show_axes=show_axes)
-
-            # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-            # fig = Figure(figsize=(1, 1))
-            # # a = fig.add_subplot(111)
-            # fig = data.plot(kind='bar', figsize = (1,1), legend = False, use_index = False)
-            # # fig.axes('off')
-            # # a.scatter(v, x, color='red')
-            # # a.plot(p, range(2 + max(x)), color='blue')
-            # # a.axis('off')
-            #
-            # # a.invert_yaxis()
-            # fig.subplots_adjust(wspace=0, hspace=0)
-            # fig.set_facecolor('#91b0cf')
-            # # a.set_title ("Estimation Grid", fontsize=16)
-            # # a.set_ylabel("Y", fontsize=14)
-            # # a.set_xlabel("X", fontsize=14)
             return fig
-
-        def resize(self, w, h, aw, ah):
-            for b in self.buttons:
-                if b:
-                    b.resize(w, h, aw, ah)
-
-        # def get_clickable_canvas(self, w, h, onclicked):
-        #     def clicked(e):
-        #         if onclicked:
-        #             onclicked()
-        #
-        #
-        # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-        # canvas = FigureCanvasTkAgg(fig, master=self.frame)
-        # c = canvas.get_tk_widget()
-        # c.configure(height=h, width = w, bd = 2)
-        # canvas.draw()
-        # # canvas = tk.Canvas(self.frame, width=w, height=h, bg = 'blue')
-        # c.bind('<Button-1>', clicked)
-        # return c

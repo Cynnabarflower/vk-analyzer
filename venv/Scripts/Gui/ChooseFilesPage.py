@@ -512,9 +512,7 @@ class ChooseFilesPage(Page):
                 users['occupation'] = users['occupation'].map(lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
                 users['university_name'].fillna('', inplace=True)
                 users['education_status'].fillna('', inplace=True)
-
                 users['id'] = users['id'].astype('int32')
-
 
                 self.users = self.users.append(users)
                 self.users['id'] = self.users['id'].astype('int32')
