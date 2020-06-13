@@ -65,8 +65,8 @@ class Gui(tk.Tk):
         self.note.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
         self.note.select(0)
         self.page_number = 0
-
         self.container.bind("<Configure>", self.resize)
+        self.update_users(self.pages[0].users)
 
     def resize(self, e):
         if self.width > 0 and self.height > 0:

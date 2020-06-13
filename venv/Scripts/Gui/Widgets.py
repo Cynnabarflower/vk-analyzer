@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
-# from PIL import Image, ImageTk
 import math
 import threading as th
 from multiprocessing import Queue
 import re
 import time
 import pandas as pd
+import json
 
 BUTTON_WIDTH = 245
 BUTTON_HEIGHT = 50
@@ -20,6 +20,8 @@ GRADIENT = [
     '#888888',
     '#999999',
 ]
+
+CITIES = None
 
 
 class NavBar(tk.Frame):
@@ -985,6 +987,12 @@ class RadioButton(tk.Frame):
         child.updatecanvas()
         self.values.append(child)
 
+    def reset(self):
+        for button in self.chosenButtons:
+            button.state = False
+            button.updatecanvas()
+        self.chosenButtons.clear()
+
     def chosen(self, button):
         print('chosen ', button.text)
         if not self.can_choose_multiple:
@@ -1120,12 +1128,13 @@ def round_frame_points(x, y, w, h, radius=25):
 
 class InputField(tk.Frame):
     def __init__(self, controller, canvas, x, y, w, h, text='', empty_text='', on_enter=None, bg='#ffffff',
-                 font=('Colibri', 26), maxlen=-1, is_password=False):
+                 font=('Colibri', 26), maxlen=-1, is_password=False, radius = 25):
         tk.Frame.__init__(self, controller, highlightthickness=0)
         self.x = x
         self.y = y
         self.w = w
         self.h = h
+        self.radius = radius
         self.bg = bg
         self.maxlen = maxlen
         self.empty_text = empty_text
@@ -1163,7 +1172,7 @@ class InputField(tk.Frame):
         self.visible_text = self.text if not self.is_password else ('*' * self.text.__len__())
         self.canvasbg = self.canvas.create_polygon(
             round_rectangle_points(self.x * self.scale[0], self.y * self.scale[1], (self.x + self.w) * self.scale[0],
-                                   (self.y + self.h) * self.scale[1]), smooth=True, fill=self.bg, tag=self.id)
+                                   (self.y + self.h) * self.scale[1], self.radius), smooth=True, fill=self.bg, tag=self.id)
         self.canvastext = self.canvas.create_text((self.x + self.text_padding) * self.scale[0],
                                                   (self.y + self.h / 2) * self.scale[1], text=self.visible_text,
                                                   anchor='w', tag=self.id + '_text',
@@ -1510,12 +1519,15 @@ class TableWidget(tk.Frame):
         self.selectedUsers = set()
         self.sorted_data = pd.DataFrame(None, columns=self.available_fields)
         self.input_row = Row(self)
-        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 5 * self.header_height,
+        self.inputfield = inputfield = InputField(self.input_row, None, 0, 0, self.w - 6 * self.header_height,
                                                   self.header_height, text='', bg='#ffffff',
                                                   empty_text='Search',
                                                   on_enter=lambda a: self.search(a.text))
         inputfield.init_canvas()
         self.input_row.add(self.inputfield)
+        add_new = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='+',
+                                 onclicked=self.add_new, padding=5)
+        self.input_row.add(add_new)
         check_all = SimpleButton(self.input_row, w=self.header_height, h=self.header_height, text='✓',
                                  onclicked=self.check_all, padding=5)
         self.input_row.add(check_all)
@@ -1631,6 +1643,8 @@ class TableWidget(tk.Frame):
                     del result[-1]
                 result.append(op)
 
+
+
         return sequence
 
 
@@ -1648,10 +1662,15 @@ class TableWidget(tk.Frame):
                                        fillcolor='#4978a6')
         counter = 0
         for field in self.available_fields:
-            if field == 'id':
+            if field == 'id' and item is not None:
+                continue
+            if field == 'region' and item is None:
                 continue
             row = Row(container)
-            val = self.data.loc[self.data['id']==item.value, field]
+            if item is not None:
+                val = self.data.loc[self.data['id']==item.value, field]
+            else:
+                val = ''
             if not isinstance(val, pd.Series) or len(val) == 0:
                 val = ""
             else:
@@ -1659,7 +1678,10 @@ class TableWidget(tk.Frame):
             if pd.isna(val):
                 val = ""
             else:
-                val = str(val)
+                if field == 'city':
+                    val = get_city_by_id(val)
+                else:
+                    val = str(val)
             simple_button = SimpleButton(
                     row,
                     w=header_template.w,
@@ -1674,13 +1696,13 @@ class TableWidget(tk.Frame):
             inputfield = InputField(row, None, 0, 0, (w - header_template.w),
                                         header_template.h, text=val, bg='#ffffff',
                                         empty_text='',
-                                        on_enter=None)
+                                        on_enter=None, radius=2)
             inputfield.init_canvas()
             row.add(inputfield)
             row.grid(row=counter, column=0)
             counter += 1
         row = Row(container)
-        button_save = SimpleButton(row, text='Save', w=60, h=20, borderradius=4, padding=4, onclicked=lambda :self.save_changes(container, item.value))
+        button_save = SimpleButton(row, text='Save', w=60, h=20, borderradius=4, padding=4, onclicked=lambda :self.save_changes(container, -1 if item is None else item.value))
         button_discard = SimpleButton(row, text='Discard', w=60, h=20, borderradius=4, padding=4, onclicked= lambda: self.discard_changes(container))
         row.add(button_save)
         row.add(button_discard)
@@ -1692,8 +1714,33 @@ class TableWidget(tk.Frame):
         for child in container.children.values():
             if isinstance(child, Row):
                 if '!inputfield' in child.children and '!simplebutton' in child.children:
+                    if not child.children['!simplebutton'].text in self.data.columns:
+                        continue
                     t = self.data[child.children['!simplebutton'].text].dtype
+                    if child.children['!simplebutton'].text == 'id':
+                        try:
+                            id = int(child.children['!inputfield'].text)
+                            if id <= 0: raise ValueError
+                        except ValueError:
+                            child.children['!inputfield'].bg = '#ffadad'
+                            child.children['!inputfield'].init_canvas()
+                            return
+                        self.data = self.data.append(pd.Series(
+                            {'id': id}), ignore_index=True)
+
                     if t.kind != 'O' and t.kind != 'S' and t.kind != 'U' and not child.children['!inputfield'].text.isnumeric():
+                        if child.children['!simplebutton'].text == 'city':
+                            if child.children['!inputfield'].text:
+                                city_id = get_id_by_city(child.children['!inputfield'].text)
+                                if city_id > 0:
+                                    self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = city_id
+                                else:
+                                    child.children['!inputfield'].bg = '#ffadad'
+                                    child.children['!inputfield'].init_canvas()
+                                    return
+                            else:
+                                self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = 0
+                        else:
                             self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = 0
                     else:
                         self.data.loc[self.data['id'] == id, child.children['!simplebutton'].text] = child.children['!inputfield'].text
@@ -1725,6 +1772,17 @@ class TableWidget(tk.Frame):
         w = self.w * 2 / 3 * self.scale[0]
         h = self.h * 2 / 3 * self.scale[1]
         if self.settings_container:
+            for c in self.settings_container.children.values():
+                if '!simplebutton' in c.children and c.children['!simplebutton'].text == 'city':
+                    if c.children['!inputfield'].text:
+                        city_id = get_id_by_city(c.children['!inputfield'].text)
+                        if city_id > 0:
+                            c.children['!inputfield'].text = str(city_id)
+                        elif not c.children['!inputfield'].text.isnumeric():
+                            c.children['!inputfield'].bg = '#ffadad'
+                            c.children['!inputfield'].init_canvas()
+                            return
+
             self.settings_container.grid_forget()
             self.scrollList.textcolor = '#224b79'
             self.search_sequence = ''
@@ -1773,13 +1831,16 @@ class TableWidget(tk.Frame):
                 inputfield = InputField(row, None, 0, 0, (w - header_template.w),
                                         header_template.h, text='', bg='#ffffff',
                                         empty_text='',
-                                        on_enter=None)
+                                        on_enter=None, radius=2)
                 inputfield.init_canvas()
                 row.add(inputfield)
                 row.grid(row=counter, column=0)
             counter += 1
         container.grid(row=1, column=0)
         self.update()
+
+    def add_new(self):
+        self.show_edit(None)
 
     def check_all(self):
 
@@ -1887,6 +1948,12 @@ class TableWidget(tk.Frame):
             self.available_fields = available_fields
             self.init_header(self.available_fields)
         for _, row in data[available_fields].iterrows():
+            if row['followers_count'] == -1:
+                row['followers_count'] = ' '
+            row['city'] = get_city_by_id(row['city'])
+            if row['graduation'] < 1:
+                row['graduation'] = ''
+
             wide_button = WideScrollListButton(
                 tag='',
                 y=0, values=row['id'], text=row.values, fillcolor=self.scrollList.fillcolor,
@@ -1897,14 +1964,7 @@ class TableWidget(tk.Frame):
                 wide_button.isChosen = True
             self.scrollList.add(wide_button, update=False)
 
-        # self.loadedIndexes = (min(self.loadedIndexes[0], a), max(self.loadedIndexes[1], b))
         self.loadedIndexes = (0, self.scrollList.buttons.__len__())
-        # self.init_header(self.available_fields)
-        self.data['id'] = self.data['id'].astype('int32')
-        # if 'followers_count' in self.data.columns:
-        #     self.data['followers_count'] = self.data['followers_count'].astype('int32')
-        # if 'graduation' in self.data.columns:
-        #         self.data['graduation'] = self.data['graduation'].astype('int32')
         print('Filled ', self.loadedIndexes)
 
     def pointerdown(self, e):
@@ -2289,3 +2349,25 @@ def rotate_polygon(points, x, y, ox=0, oy=0, oz=0):
             tx = x + (points[i] - x) * math.cos(oz) - (points[i + 1] - y) * math.sin(oz)
             ty = y + (points[i] - x) * math.sin(oz) + ((points[i + 1] - y) * math.cos(oz))
             points[i], points[i + 1] = tx, ty
+
+def get_city_by_id(id):
+    global CITIES
+    if CITIES is None:
+        CITIES = pd.read_json('citiesMap.json',orient='index')
+        CITIES = CITIES.drop(columns=['id', 'important'])
+        CITIES = CITIES.append(pd.Series({'title' : 'Москва', 'area' : 'Москва', 'region' : 'RU-MOS'}, name=1))
+        CITIES = CITIES.append(pd.Series({'title' : 'Санкт-Петербург', 'area' : 'Санкт-Петербург', 'region' : 'RU-SPB'}, name=2))
+
+
+    if id in CITIES.index:
+        return CITIES.loc[id]['title']
+    return ''
+
+def get_id_by_city(city):
+    if CITIES is None:
+        get_city_by_id(0)
+    r = CITIES[CITIES['title'] == city].index
+    if r.__len__():
+        return r[0]
+    else:
+        return -1

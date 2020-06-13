@@ -5,7 +5,7 @@ import Gui.Gui as Gui
 from Gui.Widgets import *
 import moustache_graph as mg
 
-fields = ['id', 'first_name', 'last_name', 'sex', 'nickname', 'followers_count', 'bdate', 'city', 'occupation', 'university_name', 'graduation', 'education_status', 'detected_region']
+fields = ['id', 'first_name', 'last_name', 'sex', 'followers_count', 'bdate', 'city', 'occupation', 'university_name', 'graduation', 'education_status', 'region']
 
 class TablePage(Page):
     def __init__(self, parent, controller):
@@ -13,7 +13,6 @@ class TablePage(Page):
         self.controller = controller
         self.table = TableWidget(self, w = 550, h = 335, data = [], fields = fields)
         self.table.grid(column = 0, row = 0, sticky='nsew')
-        self.update_users([])
 
 
     def update_users(self, data):

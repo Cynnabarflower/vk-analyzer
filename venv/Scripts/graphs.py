@@ -217,7 +217,7 @@ def dispersion_diagram(data, p1, p2, qual, lat, long, show_axes):
     return fig
 
 
-def kat_hist(data, par, qual, lat, long, show_axes):
+def kat_hist(data, qual, par, lat, long, show_axes):
     c = data[qual].unique()
     fig, ax = plt.subplots(figsize=(lat, long), nrows=1, ncols=len(c))
     for i in range(len(c)):

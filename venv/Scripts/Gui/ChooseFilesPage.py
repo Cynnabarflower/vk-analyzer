@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 import requests
 import time
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import moustache_graph
 import datetime
@@ -32,9 +33,12 @@ class ChooseFilesPage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.filesToRead = []
-        self.users = pd.DataFrame(None,
-                                  columns=['first_name', 'last_name', 'deactivated', 'sex', 'photo', 'online',
-                                           'can_write_private_message', 'can_post'])
+        dtypes = np.dtype([
+            ('id', int),  ('first_name', str), ('last_name', str), ('sex', str), ('followers_count', int),
+            ('bdate', str), ('city', int), ('occupation', str), ('university_name', str), ('graduation', int),
+            ('education_status', str)
+        ])
+        self.users = pd.DataFrame(np.empty(0, dtypes))
         self.messages = pd.DataFrame()
         self.image = None
         self.loadedfiles = 0
@@ -506,16 +510,23 @@ class ChooseFilesPage(Page):
                 #             self.users = self.users.append(user, ignore_index=True)
                 counter += 1
                 users = pd.DataFrame(js)
-                # if 'faculty_name' in users.columns:
-                #     users.drop('faculty_name', inplace=True, axis='columns')
-                users['city'] = users['city'].map(lambda a: pd.NA if pd.isna(a) or not isinstance(a, dict) else a['id'] )
+
+                users['city'] = users['city'].map(lambda a: 0 if pd.isna(a) or not isinstance(a, dict) else a['id'])
+                users['city'] = users['city'].astype('int32')
                 users['occupation'] = users['occupation'].map(lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
                 users['university_name'].fillna('', inplace=True)
+                users['university_name'] = users['university_name'].astype(str)
+                users['bdate'].fillna('', inplace=True)
+                users['bdate'] = users['bdate'].astype(str)
+                users['graduation'].fillna(-1, inplace=True)
+                users['graduation'] = users['graduation'].astype(int)
+                users['followers_count'].fillna(-1, inplace=True)
+                users['followers_count'] = users['followers_count'].astype(int)
                 users['education_status'].fillna('', inplace=True)
-                users['id'] = users['id'].astype('int32')
-
+                users['education_status'] = users['education_status'].astype(str)
+                users['id'] = users['id'].astype(int)
+                users = users[self.users.columns]
                 self.users = self.users.append(users)
-                self.users['id'] = self.users['id'].astype('int32')
                 q.put((filename, counter / total))
                 # self.users['id'] = self.users.index
         self.users = self.users.drop_duplicates(subset='id', keep="last")

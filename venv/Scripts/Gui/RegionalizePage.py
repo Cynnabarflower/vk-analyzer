@@ -52,6 +52,7 @@ class RegionalizePage(Page):
 
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
+        self.controller = controller
         self.scrollList = ScrollList(self, onclicked=lambda n: self.show_page(n), w=self.SCROLL_WIDTH,
                                      h=340, item_height=self.SCROLL_ITEM_HEIGHT, bg=Gui.background_color,
                                      figurecolor='#91b0cf',
@@ -133,6 +134,8 @@ class RegionalizePage(Page):
         self.update_scrolllist(self.regions)
         if progress < 1:
             self.after(500, self.watch_progress)
+        else:
+            self.controller.update_users(self.users)
 
     def regionalize(self):
         self.regions = {}
@@ -144,14 +147,6 @@ class RegionalizePage(Page):
         cities = json.load(open('citiesMap.json', 'r'))
         cities['1'] = {'region': 'RU-MOS'}
         cities['2'] = {'region': 'RU-LEN'}
-
-        threads = []
-        step = min(50000, round(u_len))
-
-        # while i < u_len:
-        #     threads.append(
-        #         Thread(target=self.__reg, args=([users_list, cities, i, min(u_len, i + step), i]), daemon=True))
-        #     i += min(u_len, step)
         Thread(target=lambda: self._reg2(users_list, cities)).start()
 
         # for th in threads:
@@ -159,7 +154,7 @@ class RegionalizePage(Page):
 
     def detect_region(self, user, cities, regs, not_found):
         if (not pd.isna(user['city'])):
-            city_id = str(user['city']['id'])
+            city_id = str((int)(user['city']))
             if city_id in cities:
                 reg = cities[city_id]['region']
                 if reg in regs:
@@ -170,13 +165,13 @@ class RegionalizePage(Page):
                     return reg
             else:
                 not_found[city_id] = ''
-        return None
+        return ''
 
 
     def _reg2(self, users_df, cities):
         not_found = {}
         regs = {}
-        users_df['detected_region'] = users_df.apply(lambda row: self.detect_region(row, cities, regs, not_found), axis = 1)
+        users_df['region'] = users_df.apply(lambda row: self.detect_region(row, cities, regs, not_found), axis = 1)
         with self.regions_lock:
             for reg in regs:
                 if reg in self.regions:
