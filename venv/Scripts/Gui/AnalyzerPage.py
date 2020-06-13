@@ -4,6 +4,7 @@ from tkinter import ttk
 import Gui.Gui as Gui
 from Gui.Widgets import *
 import matplotlib
+import os
 
 matplotlib.use('TkAgg')
 import numpy as np
@@ -19,6 +20,8 @@ class AnalyzerPage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
         self.buttons = []
+        self.canvases = []
+        self.top_canvas_windows = []
         self.data = None
         self.note = None
         self.scale = (1.0, 1.0)
@@ -31,28 +34,19 @@ class AnalyzerPage(Page):
         if data is None:
             return
         items = {}
-        if 'first_name' in data:
-            items['name'] = ['first name']
-            if 'last_name' in data:
-                items['name'] += ['last_name']
-            if 'nickname' in data:
-                items['name'] += ['nickname']
         if 'bdate' in data:
-            items['age'] = ['bday', 'age_years']
-            data['age_years'] = data['bdate'].map(lambda a: self.calc_age(a))
-        if 'time_online' in data:
-            items['time'] = ['online hours', 'avg day online']
+            items['age'] = ['bdate', 'age']
+            data['age'] = data['bdate'].map(lambda a: self.calc_age(a))
         if 'sex' in data:
             items['sex'] = ['sex']
         if 'education_status' in data:
-            items['education_status'] = ['education status']
-        if "university_name" in data:
-            items['university_name'] = ['university name']
-        if 'detected_region' in data:
+            items['education'] = ['education']
+        if "university" in data:
+            items['university'] = ['university']
+        if 'region' in data:
             items['region'] = ['region']
-
-        items['followers_count'] = ['followers']
-        items['region'] = ['region']
+        if 'followers_count' in data:
+            items['followers_count'] = ['followers_count']
         self.items = items
 
     def calc_age(self, bday):
@@ -69,6 +63,46 @@ class AnalyzerPage(Page):
         else:
             return -1
 
+    def display_graphs(self):
+
+        for win in self.top_canvas_windows:
+            self.top_canvas.delete(win[0])
+
+        self.canvases = []
+        self.buttons = []
+        self.top_canvas_windows = []
+
+
+        graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie', 'Histogram']
+        graphs = []
+        b = self.qualicative_radio.get_selected() + self.quantative_radio.get_selected()
+        if not ((("age" in b or "followers_count" not in b) and ("age" not in b or "followers_count" in b)) or b.__len__() != 2):
+            graphs.append('Moustache')
+            graphs.append('Histogram')
+        if not (b.__len__() != 3 or (("age" in b or "followers_count" not in b) and ("age" not in b or "followers_count" in b))):
+            graphs.append('Cluster')
+        if  b.__len__() == 3 and not ("age" not in b or "followers_count" not in b):
+            graphs.append('Dispersion')
+        if b.__len__() == 1 and self.quantative_radio.get_selected().__len__() == 0:
+            graphs.append('Pie')
+
+        t = 0
+        for graph in graphs:
+            if not os.path.exists(os.getcwd()+'\\\\'+graph+'.png'):
+                fig = self.get_plot(self.data.sample(min(50, self.data.__len__())),
+                                    graph, sf=[0, 0, 0, 0, 0])
+                self.fig = None
+                fig.savefig(graph+'.png', bbox_inches='tight', facecolor='#91b0cf', pad_inches=0)
+                matplotlib.pyplot.clf()
+                matplotlib.pyplot.cla()
+            c = SimpleButton(self, onclicked=lambda b: self.clicked(b), w=550 / 5, h=550 / 5, text=str(graph),
+                             icon=tk.PhotoImage(file=graph+'.png'), fillcolor='#91b0cf', padding=5)
+            self.canvases.append(c)
+            self.buttons.append(c)
+            self.top_canvas_windows.append(
+                [self.top_canvas.create_window(t * 550 / 5, 0, window=c, anchor='nw'), t * 550 / 5, 0])
+            # c.grid(row=2, column=t, sticky='nw')
+            t += 1
 
     def init_pages(self):
         if self.note:
@@ -87,135 +121,81 @@ class AnalyzerPage(Page):
         # self.note.add(frame)
         # frame.configure(background=Gui.background_color, bd=-2)
 
-        self.canvases = []
-        self.buttons = []
-        self.top_canvas_windows = []
-        t = 0
         self.items = {}
         self.setup_items(self.data)
         self.top_canvas = tk.Canvas(self, width = 550, height = 114, bg=Gui.background_color, bd=-2)
         self.top_canvas.grid(column = 0, row = 0, columnspan = 5)
 
-        graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie', 'Histogram']
-
-        for graph in graphs:
-            fig = self.get_plot(self.data.sample(min(50, self.data.__len__())),
-                                graph)
-            self.fig = None
-            fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf', pad_inches=0)
-            matplotlib.pyplot.clf()
-            matplotlib.pyplot.cla()
-            c = SimpleButton(self, onclicked=lambda b: self.clicked(b), w=550 / 5, h=550 / 5, text=str(graph),
-                             icon=tk.PhotoImage(file='figure1.png'), fillcolor='#91b0cf', padding = 5)
-            self.canvases.append(c)
-            self.buttons.append(c)
-            self.top_canvas_windows.append([self.top_canvas.create_window(t * 550/5, 0, window=c, anchor = 'nw'), t * 550/5, 0])
-            # c.grid(row=2, column=t, sticky='nw')
-            t += 1
-        t = 0
         textCanvas = tk.Canvas(self, width=550, height=37, bg=Gui.background_color, bd=-2)
         textCanvas.create_text(275, 4, text='Qualicative', font=("Colibri", 20), fill='#4978a6',
                                     anchor="n")
         textCanvas.grid(column=0, row=2)
 
-        b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+        self.qualicative_radio = b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
                                                                 fillcolor='#F0F0ED', loadcolor='#F0F0ED',
                                                                 textcolor='#4978a6'),
                             child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
                                                         fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked=None)
+                            can_choose_multiple=True, onclicked= lambda a: self.display_graphs())
         # b.set_header("Qualicative:")
-        b.add_value('bday')
+        b.add_value('bdate')
         b.add_value('sex')
         b.add_value('education_status')
-        b.add_value('region')
+        if 'region' in self.items:
+            b.add_value('region')
         b.grid(row = 3, column = 0, columnspan = 5)
         self.textCanvas = tk.Canvas(self, width=550, height=37, bg=Gui.background_color, bd=-2)
         self.textCanvas.create_text(275, 4, text='Quantitive', font=("Colibri", 20), fill='#4978a6',
                                     anchor="n")
         self.textCanvas.grid(column=0, row=4)
 
-        b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+        self.quantative_radio = b = RadioButton(self, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
                                                                 fillcolor='#F0F0ED', loadcolor='#F0F0ED',
                                                                 textcolor='#4978a6'),
                             child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
                                                         fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked=None)
+                            can_choose_multiple=True, onclicked = lambda a: self.display_graphs())
         # b.set_header("Quantitive:")
-        b.add_value('age')
-        b.add_value('followers_count')
+        if 'age' in self.items:
+            b.add_value('age')
+        if 'followers_count' in self.items:
+            b.add_value('followers_count')
         b.grid(row=5, column=0, columnspan=2)
-        return
+        self.display_graphs()
 
 
-        if self.navigationNote:
-            self.navigationNote.grid_forget()
-        if self.note:
-            self.note.grid_forget()
-        self.navigationNote = Note(self)
-        self.note = Note(self)
-        frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, height=550)
-        self.note.add(frame)
-        frame.configure(background=Gui.background_color, bd=-2)
-
-        self.items = {}
-        self.setup_items(self.data)
-
-        self.page1 = self._Page1(frame, self.items)
-        frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
-        frame.configure(background=Gui.background_color, bd=-2)
-        SimpleButton(parent=frame, text='Next',
-                     onclicked=lambda: self.fields_selected() or self.note.select(1) or self.navigationNote.select(1),
-                     w=550, h=57,
-                     padding=5).grid(row=5, column=0,
-                                     columnspan=1 if self.page1.buttons.__len__() < 5 else self.page1.buttons.__len__() - 3 if self.page1.buttons.__len__() < 7 else 4,
-                                     sticky='s')
-        self.navigationNote.add(frame)
-        frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
-        frame.configure(background=Gui.background_color, bd=-2)
-        self.navigationNote.add(frame)
-        SimpleButton(parent=frame, text="Done!",
-                     onclicked=lambda: self.show_plot() or self.note.select(
-                         self.note.pages.__len__() - 1) or self.navigationNote.select(2),
-                     w=290, h=57, padding=5).grid(row=5,
-                                                  column=1,
-                                                  pady=0,
-                                                  columnspan=2)
-        SimpleButton(parent=frame, text='<', onclicked=lambda:
-        self.note.select(previous=True) or self.note.current_index == 0 and self.navigationNote.select(0),
-                     w=130, h=57, padding=5).grid(
-            row=5, column=0, columnspan=1, pady=0)
-        SimpleButton(parent=frame, text='>', onclicked=lambda: self.note.select(
-            next=True) or self.note.current_index == 0 and self.navigationNote.select(0), w=130,
-                     h=57, padding=5).grid(row=5, column=3, columnspan=1, pady=0)
-
-        frame = tk.Frame(self.navigationNote, borderwidth=0, highlightthickness=0)
-        frame.configure(background=Gui.background_color, bd=-2)
-        self.navigationNote.add(frame)
-        SimpleButton(parent=frame, text="Back",
-                     onclicked=lambda: self.note.select(
-                         previous=True) or self.note.remove(
-                         self.note.pages.__len__() - 1) or self.navigationNote.select(
-                         1) or self.note.current_index == 0 and self.navigationNote.select(0), w=550, h=57,
-                     padding=5).grid(row=5, column=0)
-
-        self.note.select(0)
-        self.navigationNote.select(0)
-        self.rowconfigure(0, weight=1)
-        self.note.grid(column=0, row=0, sticky='n')
-        self.navigationNote.grid(column=0, row=1, sticky='s')
-        # self.note.pack(expand=1, fill='both', padx=0, pady=0, side='top')
-        # self.navigationNote.pack(expand=1, fill='both', padx=0, pady=0, side='bottom')
+    # def available(self, flags):
+    #     for i in range(flags.__len__()):
+    #         if not flags[i]:
+    #             self.buttons[i].clicked = None
+    #             self.buttons[i].fillcolor = "#F0F0ED"
+    #             self.buttons[i].set_text("-")
+    #             self.buttons[i].updatecanvas()
+    #         else:
+    #             self.buttons[i].clicked = lambda b: self.clicked(b)
+    #             self.buttons[i].fillcolor = "#91b0cf"
+    #     if flags[0]:
+    #         self.buttons[0].set_text("Moustache")
+    #         self.buttons[4].set_text("Histogram")
+    #     if flags[1]:
+    #         self.buttons[1].set_text("Cluster")
+    #     if flags[2]:
+    #         self.buttons[2].set_text("Dispersion")
+    #     if flags[3]:
+    #         self.buttons[3].set_text("Pie")
+    #     for i in range(flags.__len__()):
+    #         self.buttons[i].updatecanvas()
 
     def clicked(self, b):
         self.init_show_graph(b.text, b)
 
     def init_show_graph(self, name, b):
         self.fig = None
+        selectedfields = self.qualicative_radio.get_selected() + self.quantative_radio.get_selected()
         users = self.controller.get_users()
         if users.__len__() > 3000:
             users = users.sample(3000)
-        self.fig = self.get_plot(users, name, lat=5, long=8, show_axes=True)
+        self.fig = self.get_plot(users, name, selectedfields, lat=5, long=8, show_axes=True)
         b.updatecanvas(b.fillcolor)
         b.update()
         if self.fig:
@@ -223,33 +203,72 @@ class AnalyzerPage(Page):
             matplotlib.pyplot.clf()
             matplotlib.pyplot.cla()
 
-    def get_plot(self, data, graph_type, lat=1, long=1, show_axes=False):
-        if (graph_type) == 'Moustache':
-            fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes=show_axes)
-        elif graph_type == 'Cluster':
-            fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
-        elif graph_type == 'Pie':
-            fig = graphs.sweetie_pie(data, 'sex', size=lat, show_labels=show_axes)
-        elif graph_type == 'Dispersion':
-            fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
-        elif graph_type == 'Histogram':
-            fig = graphs.kat_hist(data, 'age_years', 'sex', wid=lat, long=long, show_axes=show_axes)
+    def get_plot(self, data, graph_type, sf=[], lat=1, long=1, show_axes=False):
+        q = quant = quant1 = quant2 = qual = qual1 = qual2 = ''
+        fig = None
+        if len(sf) == 1:
+            q = sf[0]
+            print('pie: ', q)
+            # build pie
+            if q in data.columns:
+                print("it's here, ", q)
+            else:
+                print(q, "does not exist")
+            fig = graphs.sweetie_pie(data, q, size=lat, show_labels=show_axes)
 
-        # fig.savefig('figure1.png', bbox_inches='tight', facecolor='#91b0cf')
-        # fig = Figure(figsize=(1, 1))
-        # # a = fig.add_subplot(111)
-        # fig = data.plot(kind='bar', figsize = (1,1), legend = False, use_index = False)
-        # # fig.axes('off')
-        # # a.scatter(v, x, color='red')
-        # # a.plot(p, range(2 + max(x)), color='blue')
-        # # a.axis('off')
-        #
-        # # a.invert_yaxis()
-        # fig.subplots_adjust(wspace=0, hspace=0)
-        # fig.set_facecolor('#91b0cf')
-        # # a.set_title ("Estimation Grid", fontsize=16)
-        # # a.set_ylabel("Y", fontsize=14)
-        # # a.set_xlabel("X", fontsize=14)
+        elif len(sf) == 2:
+            for i in sf:
+                if i == 'age' or i == 'followers_count':
+                    quant = i
+                else:
+                    qual = i
+            if graph_type == 'Moustache':
+                fig = graphs.moustache(data, qual, quant, lat=lat, long=long, show_axes=show_axes)
+                print('moustache: ', quant, ', ', qual)
+            elif graph_type == 'Histogram':
+                fig = graphs.kat_hist(data, qual, quant, lat=lat, long=long, show_axes=show_axes)
+                print('Hist: ', quant, ', ', qual)
+            # build moustache or kat_hist
+
+
+        elif len(sf) == 3:
+            if 'age' in sf and 'followers_count' in sf:
+                for i in sf:
+                    if i != 'age' and i != 'followers_count':
+                        qual = i
+                    else:
+                        if quant1 == '':
+                            quant1 = i
+                        quant2 = i
+                print('dispersion: ', qual, ', ', quant1, ', ', quant2)
+                # build dispersion
+                fig = graphs.dispersion_diagram(data, quant1, quant2, qual, lat=lat, long=long,
+                                                show_axes=show_axes)
+
+            elif ('age' in sf or 'followers_count' not in sf) or (
+                    'age' not in sf or 'followers_count' in sf):
+                for i in sf:
+                    if i == 'age' or i == 'followers_count':
+                        quant = i
+                    else:
+                        if qual1 == '':
+                            qual1 = i
+                        qual2 = i
+                print('cluster: ', quant, ', ', qual1, ', ', qual2)
+                # build cluster
+                fig = graphs.klaster(data, qual1, qual2, quant, lat=lat, long=long,
+                                     show_axes=show_axes)
+        if len(sf) == 5:
+            if graph_type == 'Moustache':
+                fig = graphs.moustache(data, 'sex', 'age', lat=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Cluster':
+                fig = graphs.klaster(data, 'sex', 'first_name', 'age', lat=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Pie':
+                fig = graphs.sweetie_pie(data, 'sex', size=lat, show_labels=show_axes)
+            elif graph_type == 'Dispersion':
+                fig = graphs.dispersion_diagram(data, 'id', 'age', 'sex', wid=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Histogram':
+                fig = graphs.kat_hist(data, 'sex', 'age', lat=lat, long=long, show_axes=show_axes)
         return fig
 
     def update_users(self, users):
@@ -418,21 +437,15 @@ class AnalyzerPage(Page):
                 self.buttons[i].updatecanvas()
 
         def clicked(self, b):
-            # Дальше в init_show_graph (ctrl+click)
             self.init_show_graph(b.text)
             b.updatecanvas(b.fillcolor)
             b.update()
 
         def init_show_graph(self, name):
-            # Тут получаем всех пользователей (data frame) и берем только 3000. Я очень не хотел этого делать, но
-            # похоже нет способа строить график в другом потоке, а значит пока он строится программа зависает. Так что 3000
-            # Кстати из-за этого графики каждый раз немного разные
             self.fig = None
             users = self.controller.get_users()
             if users.__len__() > 3000:
                 users = users.sample(3000)
-            # Я не помню почему просто не написал self.figure = self.get_plot(...)
-            # В общем надо перелать get_plot - добавить ввод массива имен полей
             self.set_fig(self.get_plot(users, name, lat=5, long=8, show_axes=True))
             self.wait_plot()
 
@@ -450,13 +463,13 @@ class AnalyzerPage(Page):
         def get_plot(self, data, graph_type, lat=1, long=1, show_axes=False):
             fig = None
             if (graph_type) == 'Moustache':
-                fig = graphs.moustache(data, 'sex', 'age_years', lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.moustache(data, 'followers_count', 'age', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Cluster':
-                fig = graphs.klaster(data, 'sex', 'first_name', 'age_years', lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.klaster(data, 'followers_count', 'first_name', 'age', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Pie':
-                fig = graphs.sweetie_pie(data, 'sex', size=lat, show_labels=show_axes)
+                fig = graphs.sweetie_pie(data, 'followers_count', size=lat, show_labels=show_axes)
             elif graph_type == 'Dispersion':
-                fig = graphs.dispersion_diagram(data, 'age_years', 'sex', 'id', wid=lat, long=long, show_axes=show_axes)
+                fig = graphs.dispersion_diagram(data, 'age', 'followers_count', 'id', wid=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Histogram':
-                fig = graphs.kat_hist(data, 'age_years', 'sex', wid=lat, long=long, show_axes=show_axes)
+                fig = graphs.kat_hist(data, 'age', 'followers_count', wid=lat, long=long, show_axes=show_axes)
             return fig

@@ -203,9 +203,9 @@ The function builds a scatter diagram for two quantitative and one qualitative a
 # quant is the quantitative data (kolichestvenniye)
 
 
-def dispersion_diagram(data, p1, p2, qual, wid, long, show_axes):
+def dispersion_diagram(data, p1, p2, qual, lat, long, show_axes):
     u = data[qual].unique()
-    fig, ax = plt.subplots(figsize=(wid, long))
+    fig, ax = plt.subplots(figsize=(lat, long))
     for i in range(len(u)):
         x = data.loc[data[qual] == u[i]][p1]
         y = data.loc[data[qual] == u[i]][p2]
@@ -217,9 +217,9 @@ def dispersion_diagram(data, p1, p2, qual, wid, long, show_axes):
     return fig
 
 
-def kat_hist(data, par, qual, wid, long, show_axes):
+def kat_hist(data, par, qual, lat, long, show_axes):
     c = data[qual].unique()
-    fig, ax = plt.subplots(figsize=(wid, long), nrows=1, ncols=len(c))
+    fig, ax = plt.subplots(figsize=(lat, long), nrows=1, ncols=len(c))
     for i in range(len(c)):
         x = data.loc[data[qual] == c[i]][par]
         ax[i].hist(x)
