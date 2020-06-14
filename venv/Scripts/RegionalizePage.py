@@ -12,7 +12,9 @@ import region_coordinates
 import numpy as np
 import pandas as pd
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class RegionalizePage(Page):
     SCROLL_ITEM_HEIGHT = 25
     SCROLL_ITEM_WIDTH = 170
