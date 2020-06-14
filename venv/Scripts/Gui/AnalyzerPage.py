@@ -81,7 +81,7 @@ class AnalyzerPage(Page):
         graphs = []
         b = self.qualitative_radio.get_selected() + self.quantitative_radio.get_selected()
         if not ((("age" in b or "followers_count" not in b) and (
-                "age" not in b or "followers_count" in b)) or b.__len__() != 2):
+                "age" not in b or "followerscount" in b)) or b.__len__() != 2):
             graphs.append('Moustache')
             graphs.append('Histogram')
         if not (b.__len__() != 3 or (
