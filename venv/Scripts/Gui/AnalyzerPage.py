@@ -5,8 +5,6 @@ import Gui.Gui as Gui
 from Gui.Widgets import *
 import matplotlib
 import os
-
-matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -14,6 +12,8 @@ from threading import Thread
 from datetime import date
 import graphs
 import datanaliser
+
+matplotlib.use('TkAgg')
 
 
 class AnalyzerPage(Page):
@@ -28,6 +28,12 @@ class AnalyzerPage(Page):
         self.navigationNote = None
         self.page1 = self.page2 = self.page3 = None
         self.top_canvas = None
+        self.items = None
+        self.fig = None
+        self.fields_note = None
+        self.qualitative_radio = None
+        self.textCanvas = None
+        self.agg_radio = None
         self.init_pages()
 
     def setup_items(self, data):
@@ -72,41 +78,47 @@ class AnalyzerPage(Page):
         self.buttons = []
         self.top_canvas_windows = []
 
-
-        graphs = ['Moustache', 'Cluster', 'Dispersion', 'Pie', 'Histogram', 'Summary', 'Quality', 'Quantity']
         graphs = []
-        b = self.qualicative_radio.get_selected() + self.quantative_radio.get_selected()
-        if not ((("age" in b or "followers_count" not in b) and ("age" not in b or "followers_count" in b)) or b.__len__() != 2):
+        b = self.qualitative_radio.get_selected() + self.quantitative_radio.get_selected()
+        if not ((("age" in b or "followers_count" not in b) and (
+                "age" not in b or "followers_count" in b)) or b.__len__() != 2):
             graphs.append('Moustache')
             graphs.append('Histogram')
-        if not (b.__len__() != 3 or (("age" in b or "followers_count" not in b) and ("age" not in b or "followers_count" in b))):
+        if not (b.__len__() != 3 or (
+                ("age" in b or "followers_count" not in b) and ("age" not in b or "followers_count" in b))):
             graphs.append('Cluster')
-        if  b.__len__() == 3 and not ("age" not in b or "followers_count" not in b):
+        if b.__len__() == 3 and not ("age" not in b or "followers_count" not in b):
             graphs.append('Dispersion')
-        if b.__len__() == 1 and self.quantative_radio.get_selected().__len__() == 0:
+        if b.__len__() == 1 and self.quantitative_radio.get_selected().__len__() == 0:
             graphs.append('Pie')
-        if self.qualicative_radio.get_selected().__len__() == 2:
+        if self.qualitative_radio.get_selected().__len__() == 2:
             graphs.append('Summary')
-        if self.qualicative_radio.get_selected().__len__() == 1:
+        if self.qualitative_radio.get_selected().__len__() == 1:
             graphs.append('Quality')
+        if self.qualitative_radio.get_selected().__len__() == 2 and self.quantitative_radio.get_selected().__len__() == 0:
+            graphs.append('Colourful_caterpillar')
+        if self.qualitative_radio.get_selected().__len__() == 0 and self.quantitative_radio.get_selected().__len__() == 2:
+            graphs.append('Line_graph')
         graphs.append('Quantity')
 
         t = 0
         for graph in graphs:
-            if not os.path.exists(os.getcwd()+'\\\\'+graph+'.png'):
+            if not os.path.exists(os.getcwd() + r'\\' + graph + '.png'):
                 fig = self.get_plot(self.data.sample(min(50, self.data.__len__())),
                                     graph, sf=[0, 0, 0, 0, 0])
                 self.fig = None
                 if fig:
-                    fig.savefig(graph+'.png', bbox_inches='tight', facecolor='#91b0cf', pad_inches=0)
+                    fig.savefig(graph + '.png', bbox_inches='tight', facecolor='#91b0cf', pad_inches=0)
                     matplotlib.pyplot.clf()
                     matplotlib.pyplot.cla()
             if graph in ['Summary', 'Quality', 'Quantity']:
-                c = SimpleButton(self, onclicked=lambda b: self.show_report(b.text), w=550 / 5, h=550 / 5, text=str(graph),
+                c = SimpleButton(self, onclicked=lambda b: self.show_report(b.text), w=550 / 5, h=550 / 5,
+                                 text=str(graph),
                                  icon=tk.PhotoImage(file='report.png'), fillcolor='#91b0cf', padding=5)
             else:
-                c = SimpleButton(self, onclicked=lambda b: self.init_show_graph(b.text, b), w=550 / 5, h=550 / 5, text=str(graph),
-                             icon=tk.PhotoImage(file=graph+'.png'), fillcolor='#91b0cf', padding=5)
+                c = SimpleButton(self, onclicked=lambda b: self.init_show_graph(b.text, b), w=550 / 5, h=550 / 5,
+                                 text=str(graph),
+                                 icon=tk.PhotoImage(file=graph + '.png'), fillcolor='#91b0cf', padding=5)
             self.canvases.append(c)
             self.buttons.append(c)
             self.top_canvas_windows.append(
@@ -124,53 +136,47 @@ class AnalyzerPage(Page):
             self.textCanvas.grid(column=0, row=0)
             return
 
-
-        # self.note = Note(self)
-        # self.note.grid(column=0, row=1, columnspan=5)
-        # frame = tk.Frame(self.note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, height=57)
-        # self.note.add(frame)
-        # frame.configure(background=Gui.background_color, bd=-2)
-
         self.items = {}
         self.setup_items(self.data)
-        self.top_canvas = tk.Canvas(self, width = 550, height = 114, bg=Gui.background_color, bd=-2)
-        self.top_canvas.grid(column = 0, row = 0, columnspan = 5)
+        self.top_canvas = tk.Canvas(self, width=550, height=114, bg=Gui.background_color, bd=-2)
+        self.top_canvas.grid(column=0, row=0, columnspan=5)
         self.fields_note = Note(self)
-        self.fields_note.grid(column=0, row=1, columnspan=5, rowspan=5, sticky = 's')
-        frame = tk.Frame(self.fields_note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, bg = 'red')
+        self.fields_note.grid(column=0, row=1, columnspan=5, rowspan=5, sticky='s')
+        frame = tk.Frame(self.fields_note, borderwidth=0, highlightthickness=0, relief='flat', bd=0, bg=Gui.background_color)
         self.fields_note.add(frame)
         self.fields_note.select(0)
-        textCanvas = tk.Canvas(frame, width=10, height=37, bg=Gui.background_color, bd=-2)
-        textCanvas.grid(column=0, row=0)
-        textCanvas = tk.Canvas(frame, width=550, height=37, bg=Gui.background_color, bd=-2)
-        textCanvas.create_text(275, 4, text='Qualicative', font=("Colibri", 20), fill='#4978a6',
-                                    anchor="n")
-        textCanvas.grid(column=0, row=2)
+        text_canvas = tk.Canvas(frame, width=10, height=37, bg=Gui.background_color, bd=-2)
+        text_canvas.grid(column=0, row=0)
+        text_canvas = tk.Canvas(frame, width=550, height=37, bg=Gui.background_color, bd=-2)
+        text_canvas.create_text(275, 4, text='Qualitative', font=("Colibri", 20), fill='#4978a6',
+                                anchor="n")
+        text_canvas.grid(column=0, row=2)
 
-        self.qualicative_radio = b = RadioButton(frame, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
-                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED',
-                                                                textcolor='#4978a6'),
-                            child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
-                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked= lambda a: self.display_graphs())
-        # b.set_header("Qualicative:")
+        self.qualitative_radio = b = RadioButton(frame,
+                                                 header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                              fillcolor='#F0F0ED', loadcolor='#F0F0ED',
+                                                                              textcolor='#4978a6'),
+                                                 child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                             fillcolor='#91b0cf', loadcolor='#4978a6'),
+                                                 can_choose_multiple=True, onclicked=lambda a: self.display_graphs())
         b.add_value('sex')
         b.add_value('education_status')
         if 'region' in self.items:
             b.add_value('region')
-        b.grid(row = 3, column = 0, columnspan = 5)
+        b.grid(row=3, column=0, columnspan=5)
         self.textCanvas = tk.Canvas(frame, width=550, height=37, bg=Gui.background_color, bd=-2)
         self.textCanvas.create_text(275, 4, text='Quantitive', font=("Colibri", 20), fill='#4978a6',
                                     anchor="n")
         self.textCanvas.grid(column=0, row=4)
 
-        self.quantative_radio = b = RadioButton(frame, header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
-                                                                fillcolor='#F0F0ED', loadcolor='#F0F0ED',
-                                                                textcolor='#4978a6'),
-                            child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
-                                                        fillcolor='#91b0cf', loadcolor='#4978a6'),
-                            can_choose_multiple=True, onclicked = lambda a: self.display_graphs())
-        # b.set_header("Quantitive:")
+        self.quantitative_radio = b = RadioButton(frame,
+                                                  header_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                               fillcolor='#F0F0ED',
+                                                                               loadcolor='#F0F0ED',
+                                                                               textcolor='#4978a6'),
+                                                  child_template=SimpleButton(parent=self, w=110, h=57, padding=5,
+                                                                              fillcolor='#91b0cf', loadcolor='#4978a6'),
+                                                  can_choose_multiple=True, onclicked=lambda a: self.display_graphs())
         if 'age' in self.items:
             b.add_value('age')
         if 'followers_count' in self.items:
@@ -190,14 +196,15 @@ class AnalyzerPage(Page):
                                                                          textcolor='#4978a6'),
                                      child_template=SimpleButton(parent=frame, w=75, h=57, padding=5,
                                                                  fillcolor='#91b0cf', loadcolor='#4978a6'),
-                                     onclicked = lambda a: self.show_report("Summary"),
+                                     onclicked=lambda a: self.show_report("Summary"),
                                      can_choose_multiple=False)
         aggs = ['count', 'sum', 'min', 'max', 'mean', 'median']
         for agg in aggs:
             self.agg_radio.add_value(agg)
         self.agg_radio.grid(column=0, row=2)
-        b = SimpleButton(parent=frame, w=550, h=57, text = 'Back', padding=5, onclicked = lambda: self.back_from_aggs(), fillcolor='#91b0cf', loadcolor='#4978a6')
-        b.grid(column = 0, row = 3, sticky = 's', rowspan = 2)
+        b = SimpleButton(parent=frame, w=550, h=57, text='Back', padding=5, onclicked=lambda: self.back_from_aggs(),
+                         fillcolor='#91b0cf', loadcolor='#4978a6')
+        b.grid(column=0, row=3, sticky='s', rowspan=2)
         self.display_graphs()
 
     def back_from_aggs(self):
@@ -209,10 +216,10 @@ class AnalyzerPage(Page):
             s = graphs.stkol(self.data)
             self.back_from_aggs()
         elif b == 'Quality':
-            s = graphs.stkach(self.data, self.qualicative_radio.get_selected()[0])
+            s = graphs.stkach(self.data, self.qualitative_radio.get_selected()[0])
             self.back_from_aggs()
         else:
-            q = self.qualicative_radio.get_selected()
+            q = self.qualitative_radio.get_selected()
             agg = self.agg_radio.get_selected()
             if agg.__len__() == 0:
                 self.fields_note.select(1)
@@ -220,11 +227,11 @@ class AnalyzerPage(Page):
             s = graphs.piv(self.data, q[0], q[1], agg[0])
         with open('f.html', 'w') as file:
             file.write(s.to_html())
-        os.system("start "+os.getcwd()+r"\\f.html")
+        os.system("start " + os.getcwd() + r"\\f.html")
 
     def init_show_graph(self, name, b):
         self.fig = None
-        selectedfields = self.qualicative_radio.get_selected() + self.quantative_radio.get_selected()
+        selectedfields = self.qualitative_radio.get_selected() + self.quantitative_radio.get_selected()
         users = self.controller.get_users()
         if users.__len__() > 3000:
             users = users.sample(3000)
@@ -237,7 +244,7 @@ class AnalyzerPage(Page):
             matplotlib.pyplot.cla()
 
     def get_plot(self, data, graph_type, sf=[], lat=1, long=1, show_axes=False):
-        q = quant = quant1 = quant2 = qual = qual1 = qual2 = ''
+        quant = quant1 = quant2 = qual = qual1 = qual2 = ''
         fig = None
         if len(sf) == 1:
             q = sf[0]
@@ -271,8 +278,6 @@ class AnalyzerPage(Page):
             elif graph_type == 'Line_graph':
                 fig = graphs.line(data, quant1, quant2, lat=lat, long=long, show_axes=show_axes)
                 print('line: ', quant1, ', ', quant2)
-
-
         elif len(sf) == 3:
             if 'age' in sf and 'followers_count' in sf:
                 for i in sf:
@@ -311,6 +316,10 @@ class AnalyzerPage(Page):
                 fig = graphs.dispersion_diagram(data, 'id', 'age', 'sex', wid=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Histogram':
                 fig = graphs.kat_hist(data, 'sex', 'age', lat=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Colourful_caterpillar':
+                fig = graphs.barh(data, 'sex', 'education_status', lat=lat, long=long, show_axes=show_axes)
+            elif graph_type == 'Line_graph':
+                fig = graphs.line(data, 'age', 'followers_count', lat=lat, long=long, show_axes=show_axes)
         return fig
 
     def update_users(self, users):
@@ -336,7 +345,6 @@ class AnalyzerPage(Page):
             self.note.add(frame)
             frame.configure(background=Gui.background_color, bd=-2)
             self.page2 = self._Page2(frame, items=selected)
-            selected = []
         return self.note.pages.__len__() < 2
 
     def resize(self, w, h, aw, ah):
@@ -344,7 +352,7 @@ class AnalyzerPage(Page):
         if self.top_canvas:
             self.top_canvas.configure(width=aw * 550, height=ah * 550 / 5)
             for win in self.top_canvas_windows:
-                self.top_canvas.move(win[0], win[1] * (aw-self.scale[0]), 0)
+                self.top_canvas.move(win[0], win[1] * (aw - self.scale[0]), 0)
             for b in self.buttons:
                 b.resize(min(w, h), min(w, h), min(aw, ah), min(aw, ah))
         self.scale = (aw, ah)

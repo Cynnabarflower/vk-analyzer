@@ -25,9 +25,11 @@ CITIES = None
 
 
 class NavBar(tk.Frame):
-    def __init__(self, parent, w=550, h=50, backgroundcolor='#4978a6', onclicked=(), pages=[], textcolor='#cadef7',
+    def __init__(self, parent, w=550, h=50, backgroundcolor='#4978a6', onclicked=(), pages=None, textcolor='#cadef7',
                  choosedcolor="#44ff44", borderradius=18, fillcolor='#224b79', padding=10, button_width=100):
         tk.Frame.__init__(self, parent)
+        if pages is None:
+            pages = []
         self.w = w
         self.h = h
         self.textcolor = textcolor
@@ -47,7 +49,6 @@ class NavBar(tk.Frame):
         self.updatecanvas()
 
     def updatecanvas(self):
-        # self.round_rectangle(self.padding, self.padding, self.w - self.padding, self.h - self.padding, radius=self.borderraadius,  outline=self.fillcolor, fill=self.fillcolor)
         x = self.padding
         self.buttons = []
         self.canvas.delete('all')

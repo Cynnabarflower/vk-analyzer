@@ -19,6 +19,7 @@ import os
 import traceback
 import normalization
 
+
 class ChooseFilesPage(Page):
     SCROLL_ITEM_HEIGHT = 50
     SCROLL_ITEM_WIDTH = 245
@@ -34,7 +35,7 @@ class ChooseFilesPage(Page):
         super().__init__(parent, controller)
         self.filesToRead = []
         dtypes = np.dtype([
-            ('id', int),  ('first_name', str), ('last_name', str), ('sex', str), ('followers_count', int),
+            ('id', int), ('first_name', str), ('last_name', str), ('sex', str), ('followers_count', int),
             ('bdate', str), ('city', int), ('occupation', str), ('university_name', str), ('graduation', int),
             ('education_status', str)
         ])
@@ -373,7 +374,7 @@ class ChooseFilesPage(Page):
         self.scrollList.updatecanvas()
         if conversations_to_load.__len__() > 0:
             q = Queue()
-            Thread(target= lambda: self.loadConversations(conversations_to_load, q), daemon=True).start()
+            Thread(target=lambda: self.loadConversations(conversations_to_load, q), daemon=True).start()
             self.wait_load_conversations(q)
         else:
             self.login_progress_bar.canvas.itemconfigure(self.login_button_text, state='normal')
@@ -388,14 +389,13 @@ class ChooseFilesPage(Page):
         else:
             self.after(200, lambda: self.wait_load_conversations(q))
 
-
-    def addFile(self, b = None, addedFiles = None):
+    def addFile(self, b=None, addedFiles=None):
         if self.profilePage and addedFiles is None:
             self.addConversation()
             return
         elif addedFiles is None:
             addedFiles = tk.filedialog.askopenfilenames(title="Select vka file",
-                                                    filetypes=([("All", "*.*"), ("vka", "*.vka")]))
+                                                        filetypes=([("All", "*.*"), ("vka", "*.vka")]))
         for addedFile in addedFiles:
             if addedFile:
                 self.filesToRead += [addedFile]
@@ -513,7 +513,8 @@ class ChooseFilesPage(Page):
 
                 users['city'] = users['city'].map(lambda a: 0 if pd.isna(a) or not isinstance(a, dict) else a['id'])
                 users['city'] = users['city'].astype('int32')
-                users['occupation'] = users['occupation'].map(lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
+                users['occupation'] = users['occupation'].map(
+                    lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
                 users['university_name'].fillna('', inplace=True)
                 users['university_name'] = users['university_name'].astype(str)
                 users['bdate'].fillna('', inplace=True)
