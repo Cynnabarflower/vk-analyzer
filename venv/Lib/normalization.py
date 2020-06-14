@@ -61,7 +61,7 @@ def text_normalize(text, stop_words):
         return (k)
 
     #Deleting stop words
-    i = 0
+    i=0
     while i in range(len(text)):
         if text[i] in stop_words:
             del text[i]
@@ -71,8 +71,8 @@ def text_normalize(text, stop_words):
     #Delete words that do not contain vowels or consonants
     i=0
     while i in range(len(text)):
-        if (count_gl_en(text[i])==0 and text[i][0] in 'abcdefghijklmnopqrstuvwxyz') or count_gl_en(text[i])==len(text[i])\
-                or (count_glas(text[i])==0 and text[i][0] in 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя')\
+        if (text[i][0] in 'abcdefghijklmnopqrstuvwxyz' and count_gl_en(text[i])==0) or count_gl_en(text[i])==len(text[i])\
+                or (text[i][0] in 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя' and count_glas(text[i])==0)\
                 or count_glas(text[i])==len(text[i]):
             del text[i]
         else:
@@ -182,33 +182,3 @@ def text_normalize(text, stop_words):
             if f != -1:
                 text[N] = word
     return text
-
-
-"""
-Mosolov Alexander.
-The input is a list(or text) and a list of filter words. The function returns the total number of words from the first list that are not included in the filter, and the number of their occurrences in this list.
-:param: text
-:type text: list
-:param: filter
-:type filter: list
-:return: kol
-:type kol: int
-:return: enter
-:type enter: dict
-"""
-def number_of_words(text, filter):
-    kol = 0 #The number of words that are not in "filter"
-    for word in text:
-        if not(word in filter):
-            kol += 1
-
-    enter = {} #List of occurrences of each word, not counting the word in filter
-    for i in range(len(text)):
-        if not(text[i] in filter): #Проверка отсутствия в filter
-            k = 1
-            for j in range(i+1, len(text)):
-                if (text[i] == text[j]):
-                    k+=1
-            if not(text[i] in enter): #If the word is not yet in the dictionary, enter it there
-                enter[text[i]] = k
-    return kol, enter

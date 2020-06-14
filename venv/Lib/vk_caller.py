@@ -5,7 +5,9 @@ import json
 import random
 import time
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class VKFA:
 
     def __init__(self, login=None, passwd=None, obj=None, section=None, **kwargs):

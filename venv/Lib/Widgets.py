@@ -13,7 +13,9 @@ BUTTON_HEIGHT = 50
 PADDING = 10
 CITIES = None
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class NavBar(tk.Frame):
     def __init__(self, parent, w=550, h=50, backgroundcolor='#4978a6', onclicked=(), pages=None, textcolor='#cadef7',
                  choosedcolor="#44ff44", borderradius=18, fillcolor='#224b79', padding=10, button_width=100):
@@ -70,7 +72,9 @@ class NavBar(tk.Frame):
                     self.updatecanvas()
                     break
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class HorizontalScrollBar(tk.Frame):
     def __init__(self, parent, w=200, h=20, car_w=20, car_h=20, car_color='#4978a6', fill_color='#91b0cf', bg='#f1f0ec',
                  callback=None):
@@ -155,7 +159,9 @@ class HorizontalScrollBar(tk.Frame):
         """
         self.canvas.move(self.pointer, (self.w * self.scale[0] - self.car_w) * (self.progress - self.last_progress), 0)
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ScrollList(tk.Frame):
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=(BUTTON_HEIGHT + PADDING) * 4 + PADDING / 2,
                  bg='#f1f0ec', onclicked=(), ondblclicked=(), items=[], textcolor='#ffffff', figurecolor=None,
@@ -597,7 +603,9 @@ class ScrollList(tk.Frame):
                     break
         self.updatecanvas()
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ScrollListButton:
     def __init__(self, tag, y, value=None, text=None, font='Colibri', fontsize=25, progress=0, fillcolor='#ffffff',
                  choosable=False, borderradius=6, loadcolor='red', textcolor='white'):
@@ -737,6 +745,9 @@ class ScrollListButton:
         self.old_y = self.y
         self.y = y
 
+"""
+Class by Dmitry Podbolotov
+"""
 class WideScrollListButton(ScrollListButton):
     def __init__(self, tag, y, values=None, text=None, font='Colibri', fontsize=25, progress=0, fillcolor='#ffffff',
                  choosable=False, borderradius=6, loadcolor='red', textcolor='white', parts=6, step=None):
@@ -770,7 +781,9 @@ class WideScrollListButton(ScrollListButton):
                                tag=self.tag + 'text')
             x0 += step
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ProgressButton(tk.Frame):
 
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=BUTTON_HEIGHT + 2 * PADDING, backgroundcolor='#f1f0ec',
@@ -888,7 +901,9 @@ class ProgressButton(tk.Frame):
             self.after(1000, self.updatecanvas)
         self.update()
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ProgressBar:
     def __init__(self, controller, canvas, x, y, r1, r2, color1, color2, font=('Colibri', 28)):
         self.canvas = canvas
@@ -1051,7 +1066,9 @@ class ProgressBar:
 
         return points
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class SimpleButton(tk.Frame):
 
     def __init__(self, parent, w=BUTTON_WIDTH + 2 * PADDING, h=BUTTON_HEIGHT + 2 * PADDING, backgroundcolor='#f1f0ec',
@@ -1182,9 +1199,6 @@ class SimpleButton(tk.Frame):
         rotate_polygon(rrp, self.w * self.scale[0] / 2, self.h / 2 * self.scale[1], ox=self.rotation[0],
                        oy=self.rotation[1], oz=self.rotation[2])
         self.clickable_polygon = self.canvas.create_polygon(rrp, outline=color, fill=color, smooth=True)
-        # round_rectangle(self.canvas, self.padding * self.scale[0], self.padding * self.scale[1],
-        #                 (self.w - self.padding) * self.scale[0], (self.h - self.padding) * self.scale[1],
-        #                 radius=self.borderradius, outline=color, fill=color)
         if self.icon is not None:
             if self.text == '':
                 self.canvas.create_image(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, image=self.icon,
@@ -1195,7 +1209,9 @@ class SimpleButton(tk.Frame):
         self.canvas.create_text(self.w * self.scale[0] / 2, self.h * self.scale[1] / 2, text=self.text,
                                 fill=self.textcolor, font=self.font)
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class RadioButton(tk.Frame):
     def __init__(self, parent, header_template=None, child_template=None, can_choose_multiple=False, onclicked=None):
         tk.Frame.__init__(self, parent)
@@ -1338,6 +1354,7 @@ def round_rectangle(canvas, x1, y1, x2, y2, radius=25, radius1=None, radius2=Non
                     **kwargs):
     """
     Draws rounded rectangle on canvas
+    Anastasia Aleshina
     :param canvas:
     :type canvas:
     :param x1:
@@ -1370,6 +1387,7 @@ def round_rectangle(canvas, x1, y1, x2, y2, radius=25, radius1=None, radius2=Non
 def round_rectangle_points(x1, y1, x2, y2, radius=25, radius1=None, radius2=None, radius3=None, radius4=None):
     """
     Returns points of rounded rectangle
+    Anastasia Aleshina
     :param x1:
     :type x1:
     :param y1:
@@ -1417,6 +1435,7 @@ def round_rectangle_points(x1, y1, x2, y2, radius=25, radius1=None, radius2=None
 def round_corner_points(x, y, w, h, radius=25):
     """
     Returns rounded corner points
+    Anastasia Aleshina
     :param x:
     :type x:
     :param y:
@@ -1445,6 +1464,7 @@ def round_corner_points(x, y, w, h, radius=25):
 def round_frame_points(x, y, w, h, radius=25):
     """
     Returns rounded frame points
+    Anastasia Aleshina
     :param x:
     :type x:
     :param y:
@@ -1465,7 +1485,9 @@ def round_frame_points(x, y, w, h, radius=25):
         corners.append(points)
     return corners
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class InputField(tk.Frame):
     def __init__(self, controller, canvas, x, y, w, h, text='', empty_text='', on_enter=None, bg='#ffffff',
                  font=('Colibri', 26), maxlen=-1, is_password=False, radius=25):
@@ -1634,7 +1656,9 @@ class InputField(tk.Frame):
             self.canvas.configure(width=self.w * aw, height=self.h * ah)
         self.init_canvas()
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class Row(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
@@ -1665,7 +1689,9 @@ class Row(tk.Frame):
         for widget in self.widgets:
             widget.resize(w, h, aw, ah)
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class RotatingCard(tk.Frame):
     def __init__(self, parent, w=265, h=265, padding=10, bg='#f1f0ec', view=None, init=None, clicked=None):
         tk.Frame.__init__(self, parent)
@@ -1761,6 +1787,9 @@ class RotatingCard(tk.Frame):
             self.a = (self.a + 5) % 360
             self.after(16, lambda: self.rotate(to))
 
+"""
+Class by Dmitry Podbolotov
+"""
 class Note(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
@@ -1836,7 +1865,9 @@ class Note(tk.Frame):
         elif hasattr(self.pages[self.current_index], 'resize'):
             self.pages[self.current_index].resize(w, h, aw, ah)
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ScrollableFrame(tk.Frame):
     def __init__(self, container, *args, **kwargs):
         super().__init__(container, *args, **kwargs)
@@ -1909,7 +1940,9 @@ class ScrollableFrame(tk.Frame):
         self.canvases.append(canvas)
         return scrollable_frame
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class TableWidget(tk.Frame):
     def __init__(self, parent, data, w=550, h=400, fields=[], data_changed=None):
         tk.Frame.__init__(self, parent)
@@ -1978,6 +2011,7 @@ class TableWidget(tk.Frame):
     def save_base(self):
         """
         Saves data to csv file
+        Anastasia Aleshina
         """
         if self.data is not None and self.data.__len__():
             filePath = tk.filedialog.asksaveasfile(mode='w', defaultextension=".csv")
@@ -2631,7 +2665,9 @@ class TableWidget(tk.Frame):
                     self.everything_loaded = True
         self.loaded = True
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class RuMap(tk.Frame):
     def __init__(self, parent, coords=None, hower_callback=lambda n: (), w=360, h=155, scaleX=2):
         tk.Frame.__init__(self, parent)
@@ -2750,6 +2786,7 @@ def resize(canvas, wscale, hscale):
 def getPolygons(s, scale=1.0, offsetX=0, offsetY=0):
     """
     Returns polygon points from polygon string
+    Anastasia Aleshina
     :param s:
     :type s:
     :param scale:
@@ -2863,6 +2900,7 @@ def getPolygons(s, scale=1.0, offsetX=0, offsetY=0):
 def getBezue(points_in):
     """
     Builds bezue curve from points
+    Anastasia Aleshina
     :param points_in:
     :type points_in:
     :return:
@@ -2923,6 +2961,7 @@ def fit_text(w, h, text, font):
 def rotate_polygon(points, x, y, ox=0, oy=0, oz=0):
     """
     Rotates points
+    Anastasia Aleshina
     :param points:
     :type points:
     :param x:
@@ -2952,6 +2991,7 @@ def rotate_polygon(points, x, y, ox=0, oy=0, oz=0):
 def get_city_by_id(id):
     """
     Returns city name by id
+    Anastasia Aleshina
     :param id:
     :type id:
     :return:
@@ -2976,6 +3016,7 @@ def get_city_by_id(id):
 def get_id_by_city(city):
     """
     returns id from city name
+    Anastasia Aleshina
     :param city:
     :type city:
     :return:

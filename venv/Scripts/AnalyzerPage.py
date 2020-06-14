@@ -15,7 +15,9 @@ import datanaliser
 
 matplotlib.use('TkAgg')
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class AnalyzerPage(Page):
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
@@ -38,6 +40,13 @@ class AnalyzerPage(Page):
         self.init_pages()
 
     def setup_items(self, data):
+        """
+        Set available fields for current data
+        :param data:
+        :type data:
+        :return:
+        :rtype:
+        """
         if data is None:
             return
         items = {}
@@ -57,6 +66,14 @@ class AnalyzerPage(Page):
         self.items = items
 
     def calc_age(self, bday):
+        """
+        Calculate age from string
+        Mosolov Alexander
+        :param bday:
+        :type bday:
+        :return:
+        :rtype:
+        """
         if not bday is np.nan:
             bday = bday.split('.')
             if len(bday) == 3:
@@ -71,7 +88,10 @@ class AnalyzerPage(Page):
             return -1
 
     def display_graphs(self):
-
+        """
+        Show available graphs
+        Podbolotov Dmitry
+        """
         for win in self.top_canvas_windows:
             self.top_canvas.delete(win[0])
 
@@ -128,6 +148,11 @@ class AnalyzerPage(Page):
             t += 1
 
     def init_pages(self):
+        """
+        Init interface
+        :return:
+        :rtype:
+        """
         if self.note:
             self.note.grid_forget()
         if self.data is None or self.data.__len__() == 0:
@@ -209,10 +234,20 @@ class AnalyzerPage(Page):
         self.display_graphs()
 
     def back_from_aggs(self):
+        """
+        Reset aggregation choosage and hide it
+        """
         self.agg_radio.reset()
         self.fields_note.select(0)
 
     def show_report(self, b):
+        """
+        Show chosen report
+        :param b:
+        :type b:
+        :return:
+        :rtype:
+        """
         if b == 'Quantity':
             s = graphs.stkol(self.data)
             self.back_from_aggs()
@@ -231,6 +266,13 @@ class AnalyzerPage(Page):
         os.system("start " + os.getcwd() + r"\\f.html")
 
     def init_show_graph(self, name, b):
+        """
+        Show chosen graph
+        :param name:
+        :type name:
+        :param b:
+        :type b:
+        """
         self.fig = None
         selectedfields = self.qualitative_radio.get_selected() + self.quantitative_radio.get_selected()
         users = self.controller.get_users()
@@ -245,6 +287,23 @@ class AnalyzerPage(Page):
             matplotlib.pyplot.cla()
 
     def get_plot(self, data, graph_type, sf=[], lat=1, long=1, show_axes=False):
+        """
+        Get plot figure
+        :param data:
+        :type data:
+        :param graph_type:
+        :type graph_type:
+        :param sf:
+        :type sf:
+        :param lat:
+        :type lat:
+        :param long:
+        :type long:
+        :param show_axes:
+        :type show_axes:
+        :return:
+        :rtype:
+        """
         quant = quant1 = quant2 = qual = qual1 = qual2 = ''
         fig = None
         if len(sf) == 1:
@@ -268,13 +327,13 @@ class AnalyzerPage(Page):
                         qual1 = i
                     qual2 = i
             if graph_type == 'Moustache':
-                fig = graphs.moustache(data, qual, quant, lat=lat, long=long, show_axes=show_axes)
-                print('moustache: ', quant, ', ', qual)
+                fig = graphs.moustache(data, qual1, quant1, lat=lat, long=long, show_axes=show_axes)
+                print('moustache: ', quant1, ', ', qual1)
             elif graph_type == 'Histogram':
-                fig = graphs.kat_hist(data, qual, quant, lat=lat, long=long, show_axes=show_axes)
-                print('Hist: ', quant, ', ', qual)
+                fig = graphs.kat_hist(data, qual1, quant1, lat=lat, long=long, show_axes=show_axes)
+                print('hist: ', quant1, ', ', qual1)
             elif graph_type == 'Colourful_caterpillar':
-                fig = graphs.barh(data, qual1, qual2, lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.barh(data, 'education_status', 'sex', lat=lat, long=long, show_axes=show_axes)
                 print('barh: ', qual1, ', ', qual2)
             elif graph_type == 'Line_graph':
                 fig = graphs.line(data, quant1, quant2, lat=lat, long=long, show_axes=show_axes)
@@ -318,16 +377,26 @@ class AnalyzerPage(Page):
             elif graph_type == 'Histogram':
                 fig = graphs.kat_hist(data, 'sex', 'age', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Colourful_caterpillar':
-                fig = graphs.barh(data, 'sex', 'education_status', lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.barh(data, 'education_status', 'sex', lat=lat, long=long, show_axes=show_axes)
             elif graph_type == 'Line_graph':
                 fig = graphs.line(data, 'age', 'followers_count', lat=lat, long=long, show_axes=show_axes)
         return fig
 
     def update_users(self, users):
+        """
+        Update users and then interface
+        :param users:
+        :type users:
+        """
         self.data = users
         self.init_pages()
 
     def fields_selected(self):
+        """
+        When field is selected or unselected
+        :return:
+        :rtype:
+        """
         selected = []
         while self.note.pages.__len__() > 1:
             self.note.pages[1].forget()
@@ -349,6 +418,17 @@ class AnalyzerPage(Page):
         return self.note.pages.__len__() < 2
 
     def resize(self, w, h, aw, ah):
+        """
+        resize page's widgets
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param aw:
+        :type aw:
+        :param ah:
+        :type ah:
+        """
         print('Analyzer resized')
         if self.top_canvas:
             self.top_canvas.configure(width=aw * 550, height=ah * 550 / 5)

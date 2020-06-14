@@ -11,7 +11,9 @@ import configparser
 
 background_color = '#F0F0ED'
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class Gui(tk.Tk):
     tempdir = ''
     page = ''

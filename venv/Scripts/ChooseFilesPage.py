@@ -18,7 +18,9 @@ import os
 import traceback
 import normalization
 
-
+"""
+Class by Dmitry Podbolotov
+"""
 class ChooseFilesPage(Page):
     SCROLL_ITEM_HEIGHT = 50
     SCROLL_ITEM_WIDTH = 245
@@ -657,6 +659,7 @@ class ChooseFilesPage(Page):
     def getTime():
         """
         Returns string with current date and time
+        Anastasia Aleshina
         :return:
         :rtype:
         """
@@ -666,6 +669,7 @@ class ChooseFilesPage(Page):
     def cleanName(name):
         """
         Removes symbols: ,.<>«»?!@:;#$%^&*/\~`'" from the given string
+        Anastasia Aleshina
         :param name:
         :return:
         """
