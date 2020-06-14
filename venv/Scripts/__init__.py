@@ -2,7 +2,7 @@ import os
 import sys
 import configparser
 
-work = r"C:\Users\Dmitry\PycharmProjects\vk-analyzer\venv"
+work = os.path.abspath(os.path.join(os.path.join(os.path.abspath(__file__), os.pardir), os.pardir))
 os.chdir(work)
 sys.path.append(work + '\Lib')
 sys.path.append(work + '\Data')
