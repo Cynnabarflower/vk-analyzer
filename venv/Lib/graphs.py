@@ -169,37 +169,31 @@ def show_graph(figure):
 
 def barh(dframe, qual1, qual2, lat=12, long=7, show_axes=True):
     """
-    Maidzhe Alexandra
-    Creates a bar plot out of two columns from a data frame.
-    (qualitative-qualitative data).
-    :param dframe: the data frame;
-    :param qual1: qualitative data for the x-axis label;
-    :param qual2: qualitative data for the x-axis label;
-    :param lat: width of the plot window;
-    :param long: length of the plot window;
-    :param show_axes: bool to allow axes' showing;
-    :return: figure/None
-    """
-    # deleting all rows with nan values
+        Maidzhe Alexandra
+        Creates a bar plot out of two columns from a data frame.
+        (qualitative-qualitative data).
+        :param dframe: the data frame;
+        :param qual1: qualitative data for the x-axis label;
+        :param qual2: qualitative data for the x-axis label;
+        :param lat: width of the plot window;
+        :param long: length of the plot window;
+        :param show_axes: bool to allow axes' showing;
+        :return: figure/None
+        """
     dframe = dframe.dropna(subset=[qual1, qual2])
     if not dframe.empty:
         dframe.rename(columns={qual1: 'rainbow'}, inplace=True)
         # creating lists for axis labels
         a = sorted(list(set(dframe['rainbow'])))
         b = sorted(list(set(dframe[qual2])))
-        # creating an array of arrays with frequencies of the data
-        s = dframe.groupby(qual2).rainbow.value_counts().tolist()
-        fr = np.array(np.array_split(s, len(b)))
-        # finding the cumulative sum aover columns for each row
-        max = -1
-        for arr in fr:
-            if arr.__len__() > max:
-                max = arr.__len__()
-        for i in range(fr.__len__()):
-            np.pad(fr[i], (0, max - arr.__len__()), 'constant')
-
-
-
+        # creating array of arrays form cumulative sum
+        sss = []
+        for d in dframe[qual2].unique():
+            ms = dframe[dframe[qual2] == d].rainbow.value_counts()
+            sss.append(ms)
+        d = pd.concat(sss, axis=1).fillna(0)
+        fr = d.transpose().to_numpy().astype(int)
+        print(fr)
         all_fr = fr.cumsum(axis=1)
 
         # creating the figure instance
@@ -208,7 +202,6 @@ def barh(dframe, qual1, qual2, lat=12, long=7, show_axes=True):
         ax.xaxis.set_visible(False)
         ax.set_xlim(0, np.sum(fr, axis=1).max())
 
-
         # the desinging part
         category_colors = plt.get_cmap('RdYlGn')(np.linspace(0.15, 0.85, fr.shape[1]))
         for i, (colname, color) in enumerate(zip(a, category_colors)):
@@ -216,7 +209,7 @@ def barh(dframe, qual1, qual2, lat=12, long=7, show_axes=True):
             starts = all_fr[:, i] - widths
             ax.barh(b, widths, left=starts, height=0.5,
                     label=colname, color=color)
-            xcenters = starts + widths/2
+            xcenters = starts + widths / 2
 
             for y, (x, c) in enumerate(zip(xcenters, widths)):
                 ax.text(x, y, str(int(c)), ha='center', va='center')
@@ -243,8 +236,10 @@ def line(dframe, quant1, quant2, lat=12, long=7, show_axes=True):
     :param show_axes: bool to allow axes' showing;
     :return: figure/None
     """
+    import copy
     # create new dataframe with only the needed columns
-    df = dframe[[quant1, quant2]]
+    # make a deep copy so that we do not to operate with slices
+    df = copy.deepcopy(dframe[[quant1, quant2]])
     # sort by x-axis
     df.sort_values(by=[quant1], inplace=True)
     x = df[quant1].tolist()
@@ -269,25 +264,7 @@ def save_graph(figure):
 # quant is the quantitative data (kolichestvenniye)
 
 
-"""
-Mosolov Alexandr.
-The function builds a scatter diagram for two quantitative and one qualitative attributes.
-:param data:
-:type data: pandas DataFrame
-:param quan1:
-:type quan1: string
-:param quan2:
-:type quan2: string
-:param qual:
-:type qual: string
-:param wid:
-:type wid: int
-:param long:
-:type long: int
-:param show_axes:
-:type show_axes: bool
-:return fig:
-"""
+
 
 
 # ****************************************************************
@@ -297,6 +274,25 @@ The function builds a scatter diagram for two quantitative and one qualitative a
 
 
 def dispersion_diagram(data, p1, p2, qual, lat, long, show_axes):
+    """
+    Mosolov Alexandr.
+    The function builds a scatter diagram for two quantitative and one qualitative attributes.
+    :param data:
+    :type data: pandas DataFrame
+    :param quan1:
+    :type quan1: string
+    :param quan2:
+    :type quan2: string
+    :param qual:
+    :type qual: string
+    :param wid:
+    :type wid: int
+    :param long:
+    :type long: int
+    :param show_axes:
+    :type show_axes: bool
+    :return fig:
+    """
     u = data[qual].unique()
     fig, ax = plt.subplots(figsize=(lat, long))
     for i in range(len(u)):
@@ -305,12 +301,30 @@ def dispersion_diagram(data, p1, p2, qual, lat, long, show_axes):
         ax.scatter(x, y)
         # ax.set_xlabel(p1)
         # ax.set_ylabel(p2)
-        ax.axis(False)
+        ax.axis(show_axes)
         # ax.legend(u)
     return fig
 
 
 def kat_hist(data, qual, par, lat, long, show_axes):
+    """
+    Mosolov Alexander.
+    Creates categorized histogram according to two qualitative parameters.
+    :param data: user data frame
+    :type data: pandas.core.frame.DataFrame
+    :param par: column of data frame with first quality parameter, abscissa
+    :type par: pandas.core.series.Series
+    :param qual: column of data frame with second quality parameter, graphics
+    :type qual: pandas.core.series.Series
+    :param lat: width of the plot window
+    :type lat: int
+    :param long: length of the plot window;
+    :type long: int
+    :param show_axis: axis display
+    :type show_axis: bool
+    :return: fig
+    :rtype: matplotlib.figure.Figure
+    """
     c = data[qual].unique()
     fig, ax = plt.subplots(figsize=(lat, long), nrows=1, ncols=len(c))
     for i in range(len(c)):

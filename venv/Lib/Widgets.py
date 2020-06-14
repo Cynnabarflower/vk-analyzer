@@ -2005,7 +2005,7 @@ class TableWidget(tk.Frame):
         self.init_table()
         self.setup_search('')
         self.loadedIndexes = (0, 0)
-        self.init_load(0, 50)
+        self.init_load(0, 100)
 
 
     def save_base(self):
@@ -2501,7 +2501,7 @@ class TableWidget(tk.Frame):
         visibleIndexes = self.scrollList.getVisibleIndexes()
         if self.loadedIndexes[1] < visibleIndexes[1] + 5 and self.loaded and not self.everything_loaded:
             self.loaded = False
-            self.init_load(self.loadedIndexes[1], self.loadedIndexes[1] + 50)
+            self.init_load(self.loadedIndexes[1], self.loadedIndexes[1] + 100)
 
     def update_header(self):
         """
@@ -2536,7 +2536,7 @@ class TableWidget(tk.Frame):
         self.scrollList.reset()
         self.everything_loaded = False
         self.loadedIndexes = (0, 0)
-        self.init_load(0, 50)
+        self.init_load(0, 100)
 
     def resize(self, w, h, aw, ah):
         """
@@ -2580,7 +2580,7 @@ class TableWidget(tk.Frame):
         self.scrollList.reset()
         self.everything_loaded = False
         self.loadedIndexes = (0, 0)
-        self.init_load(0, 50)
+        self.init_load(0, 100)
         self.inputfield.empty_text = seq if seq != '' else 'Search:'
 
     def init_load(self, a, b):

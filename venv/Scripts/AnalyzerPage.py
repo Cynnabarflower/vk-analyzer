@@ -90,12 +90,6 @@ class AnalyzerPage(Page):
             return -1
 
     def display_graphs(self):
-        """
-        Show available graphs
-        Maidzhe Alexandra
-        """
-
-    def display_graphs(self):
         for win in self.top_canvas_windows:
             self.top_canvas.delete(win[0])
 
@@ -105,8 +99,8 @@ class AnalyzerPage(Page):
 
         graphs = []
         b = self.qualitative_radio.get_selected() + self.quantitative_radio.get_selected()
-        if not ((("age" in b or "followers_count" not in b) and (
-                "age" not in b or "followerscount" in b)) or b.__len__() != 2):
+        if self.quantitative_radio.get_selected().__len__() == 1 \
+                and self.qualitative_radio.get_selected().__len__() == 1:
             graphs.append('Moustache')
             graphs.append('Histogram')
         if not (b.__len__() != 3 or (
@@ -120,10 +114,11 @@ class AnalyzerPage(Page):
             graphs.append('Summary')
         if self.qualitative_radio.get_selected().__len__() == 1:
             graphs.append('Quality')
-        if self.qualitative_radio.get_selected().__len__() == 2 and self.quantitative_radio.get_selected().__len__() == 0 \
-                and self.qualitative_radio.get_selected()[0] == 'education_status':
+        if self.qualitative_radio.get_selected().__len__() == 2 \
+                and self.quantitative_radio.get_selected().__len__() == 0:
             graphs.append('Colourful_caterpillar')
-        if self.qualitative_radio.get_selected().__len__() == 0 and self.quantitative_radio.get_selected().__len__() == 2:
+        if self.qualitative_radio.get_selected().__len__() == 0 \
+                and self.quantitative_radio.get_selected().__len__() == 2:
             graphs.append('Line_graph')
         graphs.append('Quantity')
 
@@ -150,8 +145,8 @@ class AnalyzerPage(Page):
             self.buttons.append(c)
             self.top_canvas_windows.append(
                 [self.top_canvas.create_window(t * 550 / 5, 0, window=c, anchor='nw'), t * 550 / 5, 0])
-            # c.grid(row=2, column=t, sticky='nw')
             t += 1
+
 
     def init_pages(self):
         """
@@ -269,9 +264,10 @@ class AnalyzerPage(Page):
                 self.fields_note.select(1)
                 return
             s = graphs.piv(self.data, q[0], q[1], agg[0])
-        with open('f.html', 'w') as file:
+        filename = self.controller.config['paths']['reports_folder'] + b+'_report'+self.controller.getTime()+'.html'
+        with open(filename, 'w') as file:
             file.write(s.to_html())
-        os.system("start " + os.getcwd() + r"\\f.html")
+        os.system("start " + filename)
 
     def init_show_graph(self, name, b):
         """
@@ -342,7 +338,7 @@ class AnalyzerPage(Page):
                 fig = graphs.kat_hist(data, qual1, quant1, lat=lat, long=long, show_axes=show_axes)
                 print('hist: ', quant1, ', ', qual1)
             elif graph_type == 'Colourful_caterpillar':
-                fig = graphs.barh(data, 'education_status', 'sex', lat=lat, long=long, show_axes=show_axes)
+                fig = graphs.barh(data, qual1, qual2, lat=lat, long=long, show_axes=show_axes)
                 print('barh: ', qual1, ', ', qual2)
             elif graph_type == 'Line_graph':
                 fig = graphs.line(data, quant1, quant2, lat=lat, long=long, show_axes=show_axes)

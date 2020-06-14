@@ -32,6 +32,7 @@ class Gui(tk.Tk):
         self.config.read("Data/settings.ini", encoding='utf-8')
         self.initUI()
 
+
     def initUI(self):
         """
         Setups tkinter
@@ -106,6 +107,16 @@ class Gui(tk.Tk):
                          all=True)
         self.page_changed = True
         self.note.select(page_number)
+
+    @staticmethod
+    def getTime():
+        """
+        Returns string with current date and time
+        Anastasia Aleshina
+        :return:
+        :rtype:
+        """
+        return str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 
     def update_users(self, users):
         """

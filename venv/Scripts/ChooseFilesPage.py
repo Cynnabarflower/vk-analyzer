@@ -371,8 +371,7 @@ class ChooseFilesPage(Page):
         self.rotatingcard.resize(w, h, aw, ah)
 
     def login(self, tel, pas):
-        tel = '+79629884898'
-        pas = '9841b7a33831ef01be43136501'
+
         """
         Logs in with given tel and pass
         Loads data from profile
@@ -704,15 +703,6 @@ class ChooseFilesPage(Page):
         if not self.profilePage:
             self.rotatingcard.updatecanvas()
 
-    @staticmethod
-    def getTime():
-        """
-        Returns string with current date and time
-        Anastasia Aleshina
-        :return:
-        :rtype:
-        """
-        return str(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 
     @staticmethod
     def cleanName(name):
@@ -784,9 +774,9 @@ class ChooseFilesPage(Page):
         :param conversations:
         :type conversations:
         """
-        main_dir = 'VK_Analyzer_' + self.getTime()
+        main_dir = 'VK_Analyzer_' + self.controller.getTime()
         os.mkdir(main_dir)
-        conversationsDir = main_dir + '/conversations' + self.getTime()
+        conversationsDir = main_dir + '/conversations' + self.controller.getTime()
         try:
             os.mkdir(conversationsDir)
         except Exception as e:
