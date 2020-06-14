@@ -15,6 +15,11 @@ class TablePage(Page):
 
 
     def update_users(self, data):
+        """
+        Updates users
+        :param data:
+        :type data:
+        """
         self.table.forget()
         self.table = TableWidget(self, data = data, w = 550, h = 335, data_changed = lambda users: self.controller.update_users(users), fields =fields)
         self.table.grid(column = 0, row = 0, sticky='nsew')

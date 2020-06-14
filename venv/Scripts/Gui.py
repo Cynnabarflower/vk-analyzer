@@ -19,9 +19,6 @@ class Gui(tk.Tk):
     page_number = 0  # 240 240 237
     page_changed = True
 
-    def show(self, page):
-        page.tkraise()
-
     def __init__(self):
         tk.Tk.__init__(self)
         self.width = 0
@@ -34,6 +31,10 @@ class Gui(tk.Tk):
         self.initUI()
 
     def initUI(self):
+        """
+        Setups tkinter
+        Inits interface: Navbar and pages
+        """
         self.minsize(550, 380)
         style = ttk.Style()
         style.theme_create("mytheme", parent="alt", settings={
@@ -67,6 +68,11 @@ class Gui(tk.Tk):
         self.update_users(self.pages[0].users)
 
     def resize(self, e):
+        """
+        Called when the window is resized
+        :param e:
+        :type e:
+        """
         if self.width > 0 and self.height > 0:
             if not self.page_changed:
                 self.current_w = e.width
@@ -88,23 +94,23 @@ class Gui(tk.Tk):
             self.page_changed = False
 
     def show_page(self, page_number):
+        """
+        Shows page_number page
+        :param page_number:
+        :type page_number:
+        """
         self.page_number = page_number
         self.note.resize(self.current_w, self.current_h, self.current_w / self.width, self.current_h / self.height,
                          all=True)
         self.page_changed = True
         self.note.select(page_number)
 
-    def show_previous(self):
-        self.page_number = self.page_number + 1 if self.page_number < self.pages.__len__() - 1 else 0
-        self.note.select(self.page_number)
-
-    def show_next(self):
-        self.page_number = self.page_number - 1 if self.page_number > 0 else self.pages.__len__() - 1
-        self.note.select(self.page_number)
-
     def update_users(self, users):
-        users['sex'] = users['sex'].map(
-            lambda a: ('M' if a == 2 else 'F' if a == 1 else 'NA') if isinstance(a, int) else a)
+        """
+        Updates users on all pages
+        :param users:
+        :type users:
+        """
         self.users = users
         for page in self.pages:
             page.update_users(users)

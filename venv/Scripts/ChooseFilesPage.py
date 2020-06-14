@@ -31,6 +31,13 @@ class ChooseFilesPage(Page):
     WINDOW_HEIGHT = 360
 
     def __init__(self, parent, controller):
+        """
+        Initializing darframe, main fields and interface
+        :param parent:
+        :type parent:
+        :param controller:
+        :type controller:
+        """
         super().__init__(parent, controller)
         self.filesToRead = []
         dtypes = np.dtype([
@@ -64,16 +71,34 @@ class ChooseFilesPage(Page):
         self.filescountertext = canvas.create_text(w / 2, h / 2,
                                                    text='', font=('Colibri', 22), fill='#91b0cf')
         self.filescanvas.itemconfig(self.filescountertext, text=(
-                str(self.loadedfiles) + " files loaded"))
+                str(self.loadedfiles) + " fies loaded"))
 
         self.update()
 
     def enter(self, w):
+        """
+        Changes focus on current InputField
+        :param w:
+        :type w:
+        """
         c = tk.Canvas(self)
         c.focus_set()
 
     def init_rotating(self, canvas, w, h, padding, scale):
-
+        """
+        Initialize rotating card interface
+        Not called directly, but set in RotatingCard instance
+        :param canvas:
+        :type canvas:
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param padding:
+        :type padding:
+        :param scale:
+        :type scale:
+        """
         self.login_poly = -1
 
         self.inputPhone = InputField(self, canvas, padding + w / 11, padding + h / 4,
@@ -110,6 +135,23 @@ class ChooseFilesPage(Page):
         print('')
 
     def rotating_view(self, canvas, w, h, padding, scale, a):
+        """
+        Should not be called directly
+        Set in RotatingCard instance
+        Called when the card in rotating
+        :param canvas:
+        :type canvas:
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param padding:
+        :type padding:
+        :param scale:
+        :type scale:
+        :param a:
+        :type a:
+        """
         self.inputPhone.hide()
         self.inputPass.hide()
         canvas.delete(self.login_poly)
@@ -228,10 +270,27 @@ class ChooseFilesPage(Page):
                         pb_y = (h * 7 / 12 + 30) * scale[1] + h / 12 * scale[1]
                         if pb_x != self.login_progress_bar.x or pb_y != self.login_progress_bar.y:
                             self.login_progress_bar.move(pb_x, pb_y)
-                    if a == 180:
-                        print('')
 
     def rotating_clicked(self, e, canvas, w, h, padding, scale, a):
+        """
+        Shoul not be called directly,
+        but set in RotatingCard instance
+        Called when rotating card is clicked, but not rotating button
+        :param e:
+        :type e:
+        :param canvas:
+        :type canvas:
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param padding:
+        :type padding:
+        :param scale:
+        :type scale:
+        :param a:
+        :type a:
+        """
         if a > 3.1415 / 2 and a < 3.1415 * 1.5:
             if not max(self.inputPhone.clicked(e), self.inputPass.clicked(e)):
                 if self.login_poly in canvas.find_overlapping(e.x, e.y, e.x, e.y):
@@ -253,6 +312,12 @@ class ChooseFilesPage(Page):
                         # self.login(self.inputPhone.text, self.inputPass.text)
 
     def wait_login(self, thr):
+        """
+        Waits for login to complete
+        and after, updates interface
+        :param thr:
+        :type thr:
+        """
         if self.profile_image:
             thr.join()
             self.login_progress_bar.working = False
@@ -266,6 +331,18 @@ class ChooseFilesPage(Page):
             self.after(300, lambda: self.wait_login(thr))
 
     def resize(self, w, h, aw, ah):
+        """
+        Called whenever the window is resized
+        Resizes widgets
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param aw:
+        :type aw:
+        :param ah:
+        :type ah:
+        """
         print('FilePage resized', w, h, aw, ah)
         self.add_button.resize(w, h, aw, ah)
         self.scrollList.resize(w, h, aw, ah)
@@ -277,20 +354,15 @@ class ChooseFilesPage(Page):
         self.inputPass.resize(w, h, aw, ah)
         self.rotatingcard.resize(w, h, aw, ah)
 
-        # self.listBox = tk.Listbox(self, selectmode=tk.EXTENDED)
-        # self.listBox.grid(row=10, column=0, rowspan=4)
-        # button1 = tk.Button(self, text="Add file",
-        #                     command=lambda: self.addFile())
-        # button1.grid(row=10, column=1)
-        # button1 = tk.Button(self, text="Add folder",
-        #                     command=lambda: self.addFolder())
-        # button1.grid(row=11, column=1)
-        # self.progressButton = ProgressButton(parent=self, onclicked=self.loadFiles, text='Load files')
-        # self.progressButton.grid(row=16, column=0)
-
     def login(self, tel, pas):
-        pas = '9841b7a33831ef01be43136501'
-        tel = '+79629884898'
+        """
+        Logs in with given tel and pass
+        Loads data from profile
+        :param tel:
+        :type tel:
+        :param pas:
+        :type pas:
+        """
         print('Logging in')
         self.admin_apis = vk_caller.VKFA(tel, pas)
         auth = self.admin_apis.auth()
@@ -315,13 +387,8 @@ class ChooseFilesPage(Page):
                 if ('chat_settings' in conversation['conversation']):
                     conversation_name = conversation['conversation']['chat_settings']['title']
                     self.conversations.append((conversation_name, conversation))
-        # pd.DataFrame.to_csv(info, 'temp')
-        # self.users = self.users.append([info])
-        # self.users = self.users.drop_duplicates(subset='id', keep="last")
-        # self.controller.update_users(self.users)
         photo_url = resp[0]['photo_200']
         self.profile_image = Image.open(requests.get(photo_url, stream=True).raw)
-
 
     def getUserInfo(self, user_id='', filename='', user_fields=None):
         """
@@ -357,11 +424,16 @@ class ChooseFilesPage(Page):
         user = user[0]
         if filename:
             f = open(filename, "w", True, 'UTF-8')
-            f.write('[['+json.dumps(user)+']]')
+            f.write('[[' + json.dumps(user) + ']]')
             f.close()
         return user
 
-    def addConversation(self):
+    def add_conversation(self):
+        """
+        Inits download for choosen conversations
+        :return: 
+        :rtype: 
+        """
         self.login_progress_bar.set_visible(True)
         self.login_progress_bar.working = True
         self.login_progress_bar.drawprogress()
@@ -385,15 +457,30 @@ class ChooseFilesPage(Page):
             return
 
     def wait_load_conversations(self, q):
+        """
+        Waits for conversations to download
+        and loads them into base
+        :param q:
+        :type q:
+        """
         if not q.empty():
             rep = q.get()
             self.addFile(addedFiles=rep)
         else:
             self.after(200, lambda: self.wait_load_conversations(q))
 
-    def addFile(self, b=None, addedFiles=None):
+    def addFile(self, _, addedFiles=None):
+        """
+        Inits load of given files
+        If no files given - opens file choose dialog
+        If choosing conversations - inits conversations load
+        :param addedFiles:
+        :type addedFiles:
+        :return:
+        :rtype:
+        """
         if self.profilePage and addedFiles is None:
-            self.addConversation()
+            self.add_conversation()
             return
         elif addedFiles is None:
             addedFiles = tk.filedialog.askopenfilenames(title="Select vka file",
@@ -407,8 +494,12 @@ class ChooseFilesPage(Page):
         self.load_files_launch()
 
     def load_files_launch(self):
+        """
+        Inits files load
+        Shows progress
+        """
         q = Queue()
-        Thread(target=self.loadFiles, args=[q], daemon=True).start()
+        Thread(target=self.load_files, args=[q], daemon=True).start()
         while True:
             rep = q.get()
             if rep == 'DONE':
@@ -438,27 +529,44 @@ class ChooseFilesPage(Page):
         q.close()
 
     def normalize_text(self, text):
+        """
+        Normalizes function
+        Wrapper for normalization.text_normalise function
+        :param text:
+        :type text:
+        :return:
+        :rtype:
+        """
         try:
             return normalization.text_normalize(a, ['а', 'и', ','])
         except Exception as e:
             return text
 
-    def loadFiles(self, q):
+    def load_files(self, q):
+        """
+        Loads files one by one and puts progress into queue
+        :param q: 
+        :type q: 
+        """
         progress = 0
         if self.filesToRead.__len__() > 0:
             for file in self.filesToRead:
                 if file.endswith('vkmsg'):
                     self.load_messages_file(file, q)
                 else:
-                    self.loadFile(file, q)
+                    self.load_file(file, q)
                 progress += 1
                 q.put([progress])
-                # yield progress
         q.put('DONE')
 
-        # print('files loaded')
-
     def load_messages_file(self, file, q):
+        """
+        loads messages files and puts progress into queue
+        :param file: 
+        :type file: 
+        :param q: 
+        :type q: 
+        """
         q.put([file, 0])
         f = open(file, 'r')
         filename = file.split('/')[-1]
@@ -477,7 +585,14 @@ class ChooseFilesPage(Page):
         q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename) or self.scrollList.updatecanvas())
 
-    def loadFile(self, file, q):
+    def load_file(self, file, q):
+        """
+        loads file and adds it into database
+        :param file: 
+        :type file: 
+        :param q: 
+        :type q: 
+        """
         q.put([file, 0])
         import time as t
         f = open(file, 'r')
@@ -488,15 +603,10 @@ class ChooseFilesPage(Page):
             try:
                 self.users = self.users.append(pd.read_csv(file, encoding='utf-8', engine='python'))
                 self.users.drop_duplicates(subset='id', inplace=True, keep='last')
-
-                # self.users.set_index("id", inplace=True)
-                # self.users['id'] = self.users.index
             except:
                 try:
                     self.users = self.users.append(pd.read_csv(file, encoding='ANSI', engine='python'))
                     self.users.drop_duplicates(subset='id', inplace=True, keep='last')
-                    # self.users.set_index("id", inplace = True)
-                    # self.users['id'] = self.users.index
                 except:
                     print("Error when reading file")
 
@@ -504,27 +614,29 @@ class ChooseFilesPage(Page):
             js_packs = json.load(f)
             total = js_packs.__len__() + 1
             for js in js_packs:
-                    counter += 1
-                    users = pd.DataFrame(js)
+                counter += 1
+                users = pd.DataFrame(js)
 
-                    users['city'] = users['city'].map(lambda a: 0 if pd.isna(a) or not isinstance(a, dict) else a['id'])
-                    users['city'] = users['city'].astype('int32')
-                    users['occupation'] = users['occupation'].map(
-                        lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
-                    users['university_name'].fillna('', inplace=True)
-                    users['university_name'] = users['university_name'].astype(str)
-                    users['bdate'].fillna('', inplace=True)
-                    users['bdate'] = users['bdate'].astype(str)
-                    users['graduation'].fillna(-1, inplace=True)
-                    users['graduation'] = users['graduation'].astype(int)
-                    users['followers_count'].fillna(-1, inplace=True)
-                    users['followers_count'] = users['followers_count'].astype(int)
-                    users['education_status'].fillna('', inplace=True)
-                    users['education_status'] = users['education_status'].astype(str)
-                    users['id'] = users['id'].astype(int)
-                    users = users[np.intersect1d(self.users.columns, users.columns)]
-                    self.users = self.users.append(users)
-                    q.put((filename, counter / total))
+                users['city'] = users['city'].map(lambda a: 0 if pd.isna(a) or not isinstance(a, dict) else a['id'])
+                users['city'] = users['city'].astype('int32')
+                users['occupation'] = users['occupation'].map(
+                    lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
+                users['university_name'].fillna('', inplace=True)
+                users['university_name'] = users['university_name'].astype(str)
+                users['bdate'].fillna('', inplace=True)
+                users['bdate'] = users['bdate'].astype(str)
+                users['graduation'].fillna(-1, inplace=True)
+                users['graduation'] = users['graduation'].astype(int)
+                users['followers_count'].fillna(-1, inplace=True)
+                users['followers_count'] = users['followers_count'].astype(int)
+                users['education_status'].fillna('', inplace=True)
+                users['education_status'] = users['education_status'].astype(str)
+                users['id'] = users['id'].astype(int)
+                users['sex'] = users['sex'].map(
+                    lambda a: ('M' if a == 2 else 'F' if a == 1 else '') if isinstance(a, int) else a)
+                users = users[np.intersect1d(self.users.columns, users.columns)]
+                self.users = self.users.append(users)
+                q.put((filename, counter / total))
 
         self.users = self.users.drop_duplicates(subset='id', keep="last")
 
@@ -532,6 +644,11 @@ class ChooseFilesPage(Page):
         self.after(100, lambda: self.scrollList.remove(name=filename))
 
     def update_users(self, users):
+        """
+        Updates data on all pages
+        :param users:
+        :type users:
+        """
         self.users = users
         if not self.profilePage:
             self.rotatingcard.updatecanvas()
@@ -639,63 +756,3 @@ class ChooseFilesPage(Page):
         print(conversationsDir)
         q.put(filenames)
         return filenames
-
-
-def create_number(canvas, i, scale, offsetX, offsetY):
-    paths = [
-        [
-            [[1, 1], 1, '#000000',
-             'M196.200 27.467 C 127.476 31.693,82.727 67.657,59.913 137.000 C 43.564 186.694,38.362 260.790,45.830 337.600 C 56.349 445.777,99.397 499.552,181.000 506.451 C 279.234 514.758,340.714 461.565,358.588 352.800 C 368.284 293.803,367.025 211.483,355.564 155.068 C 337.270 65.019,283.655 22.090,196.200 27.467 M218.000 78.797 C 256.983 83.828,279.207 107.597,291.358 157.254 C 303.101 205.248,305.167 302.325,295.586 355.926 C 283.351 424.381,254.104 455.857,202.800 455.785 C 146.937 455.706,118.713 420.449,109.631 339.400 C 104.635 294.806,104.803 233.042,110.037 190.800 C 120.030 110.141,157.741 71.019,218.000 78.797']
-            , [[0.2, 80], 0.7, '#ffffff',
-               'M196.200 27.467 C 127.476 31.693,82.727 67.657,59.913 137.000 C 43.564 186.694,38.362 260.790,45.830 337.600 C 56.349 445.777,99.397 499.552,181.000 506.451 C 279.234 514.758,340.714 461.565,358.588 352.800 C 368.284 293.803,367.025 211.483,355.564 155.068 C 337.270 65.019,283.655 22.090,196.200 27.467 M218.000 78.797 C 256.983 83.828,279.207 107.597,291.358 157.254 C 303.101 205.248,305.167 302.325,295.586 355.926 C 283.351 424.381,254.104 455.857,202.800 455.785 C 146.937 455.706,118.713 420.449,109.631 339.400 C 104.635 294.806,104.803 233.042,110.037 190.800 C 120.030 110.141,157.741 71.019,218.000 78.797']
-
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M189.888 28.926 C 163.988 41.514,66.157 107.393,62.363 114.801 C 57.211 124.859,57.051 147.598,62.082 154.780 C 67.671 162.759,72.934 160.599,129.519 127.104 L 180.899 96.689 181.479 288.232 C 181.798 393.581,181.577 481.039,180.988 482.584 C 180.171 484.725,166.891 485.393,125.138 485.393 C 59.208 485.393,61.798 484.291,61.798 512.352 C 61.798 542.082,46.852 539.326,208.053 539.326 C 358.212 539.326,350.873 539.957,354.187 526.751 C 356.355 518.114,354.073 492.994,350.757 488.999 C 348.177 485.890,340.985 485.393,298.601 485.393 L 249.438 485.393 249.438 258.702 C 249.438 52.664,249.107 31.736,245.805 28.996 C 239.447 23.719,200.700 23.671,189.888 28.926 ']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M170.652 21.824 C 134.924 27.386,91.170 44.938,74.371 60.447 C 64.335 69.712,61.507 80.840,64.038 101.102 C 66.562 121.303,70.994 123.128,90.217 111.884 C 248.827 19.104,337.045 138.070,221.653 289.130 C 202.409 314.323,191.042 326.745,124.534 395.264 C 54.356 467.563,53.401 468.927,54.722 495.076 C 55.458 509.660,56.167 511.876,61.588 516.539 L 67.634 521.739 210.654 521.739 C 378.756 521.739,361.957 524.894,361.957 493.328 C 361.957 463.725,373.484 466.496,245.044 465.217 L 135.892 464.130 186.795 410.870 C 308.465 283.563,336.627 237.757,340.496 160.870 C 345.271 66.007,272.024 6.042,170.652 21.824']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M171.344 23.547 C 125.354 29.526,71.310 54.371,62.107 73.764 C 57.935 82.557,57.146 112.436,60.901 119.452 C 64.369 125.932,73.547 125.098,84.959 117.265 C 181.278 51.157,281.231 77.797,275.454 168.037 C 271.502 229.763,234.979 256.898,152.412 259.451 C 98.494 261.118,98.246 261.243,98.246 286.699 C 98.246 315.632,97.115 315.041,155.556 316.685 C 258.010 319.569,302.920 349.950,302.920 416.374 C 302.920 508.258,196.843 539.476,81.234 481.616 C 47.374 464.670,43.991 466.216,44.203 498.536 C 44.378 525.436,47.563 530.784,70.523 542.729 C 123.982 570.541,211.593 576.636,270.670 556.652 C 412.059 508.824,412.109 318.127,270.741 285.998 L 253.271 282.028 268.962 277.053 C 321.329 260.450,350.877 215.227,350.877 151.684 C 350.877 60.421,279.510 9.484,171.344 23.547 ']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M248.535 19.350 C 222.131 21.157,229.034 11.794,130.811 179.033 C 32.720 346.050,33.456 344.530,37.022 372.634 C 39.774 394.318,29.804 392.470,147.700 393.144 L 251.064 393.735 251.064 445.652 C 251.064 509.607,250.379 508.625,293.111 505.883 C 317.760 504.301,317.021 506.198,317.021 444.445 L 317.021 393.617 345.745 393.617 C 378.974 393.617,381.629 392.369,384.148 375.567 C 388.671 345.409,383.369 340.426,346.759 340.426 L 317.021 340.426 317.021 185.258 C 317.021 12.946,318.127 25.474,302.564 21.508 C 291.570 18.707,270.334 17.858,248.535 19.350 M250.344 339.727 C 249.930 340.141,215.085 340.228,172.910 339.921 L 96.229 339.362 173.114 208.004 L 250.000 76.647 250.548 207.811 C 250.850 279.951,250.758 339.313,250.344 339.727']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M80.304 34.745 C 72.376 42.673,71.995 49.440,72.754 168.866 L 73.446 277.844 78.619 282.990 C 83.472 287.819,85.143 288.066,105.737 287.006 C 252.954 279.426,298.380 302.316,298.278 384.026 C 298.153 484.790,188.961 526.007,74.123 468.638 C 52.074 457.622,47.458 461.356,47.458 490.205 C 47.458 514.878,49.879 519.099,69.139 527.997 C 129.172 555.734,222.313 556.198,279.096 529.044 C 338.602 500.587,367.169 455.384,369.993 385.213 C 373.228 304.844,332.195 251.128,255.130 234.843 C 234.152 230.410,150.520 228.000,144.601 231.658 C 143.154 232.552,142.373 207.631,142.373 160.585 L 142.373 88.136 235.808 88.136 C 345.762 88.136,337.308 90.357,338.636 61.109 C 339.227 48.113,338.483 41.747,335.760 36.480 L 332.087 29.379 208.879 29.379 L 85.670 29.379 80.304 34.745 ']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M218.370 35.328 C 96.785 47.344,35.670 154.040,47.554 333.543 C 56.456 468.025,102.007 521.612,203.930 517.509 C 291.508 513.984,344.785 464.551,354.544 377.764 C 361.841 312.873,337.768 259.021,291.742 237.270 C 244.601 214.991,162.775 220.475,116.610 249.007 L 109.845 253.188 109.845 240.855 C 109.845 123.822,191.630 59.485,297.352 93.351 C 318.149 100.013,325.283 100.831,329.119 96.995 C 332.169 93.945,332.478 64.739,329.542 57.017 C 324.092 42.682,263.523 30.865,218.370 35.328 M227.979 273.666 C 269.022 280.161,288.924 305.783,291.647 355.631 C 295.444 425.135,254.674 472.330,194.819 467.716 C 138.871 463.403,112.084 419.213,111.166 329.717 L 110.881 301.921 125.377 294.046 C 157.723 276.473,196.742 268.722,227.979 273.666 ']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M31.359 39.112 C 24.700 49.276,26.048 78.472,33.815 92.304 C 33.981 92.600,93.613 93.395,166.329 94.069 L 298.541 95.294 285.953 123.529 C 279.030 139.059,233.035 242.238,183.742 352.817 C 134.448 463.396,94.118 555.649,94.118 557.823 C 94.118 571.540,154.525 574.679,167.098 561.616 C 176.052 552.312,371.270 98.986,374.224 80.636 C 377.065 62.989,375.542 46.318,370.351 38.235 L 366.950 32.941 201.176 32.941 L 35.403 32.941 31.359 39.112 ']
-        ],
-        [
-            [[1, 1], 1, '#000000',
-             'M181.915 61.975 C 108.171 71.193,63.673 116.651,63.882 182.552 C 64.035 230.686,89.119 265.215,150.182 301.346 C 155.173 304.299,156.381 303.236,131.586 317.702 C 72.700 352.059,46.743 388.970,46.840 438.213 C 46.992 515.861,101.782 556.413,206.383 556.297 C 311.523 556.180,366.866 515.998,371.665 436.291 C 375.079 379.598,348.648 344.501,270.182 301.534 L 263.270 297.749 283.231 284.685 C 349.051 241.608,371.566 180.851,343.497 122.059 C 321.585 76.167,257.881 52.478,181.915 61.975 M250.000 116.982 C 312.608 140.703,304.300 216.405,234.138 261.519 C 212.951 275.143,200.736 271.847,162.182 242.103 C 109.570 201.513,117.602 130.428,176.666 113.919 C 194.228 109.010,233.263 110.640,250.000 116.982 M229.603 341.696 C 288.932 373.065,307.716 396.569,305.959 437.234 C 303.898 484.944,272.419 507.565,208.511 507.263 C 102.082 506.758,73.975 411.433,162.963 352.789 C 202.235 326.908,201.778 326.984,229.603 341.696']
-        ],
-        [
-            [[1, 1], 1, '#bb0000',
-             'M191.400 37.200 C 94.915 42.964,39.292 114.489,50.640 218.200 C 58.838 293.124,104.562 330.530,188.000 330.572 C 223.923 330.590,246.854 325.566,280.241 310.363 C 292.265 304.888,294.145 306.107,293.191 318.758 C 287.120 399.227,249.401 452.304,190.156 463.745 C 160.826 469.409,126.863 466.141,91.000 454.204 C 68.199 446.615,63.951 448.652,62.752 467.751 C 61.192 492.604,67.076 501.179,90.600 508.338 C 130.404 520.451,181.412 521.196,219.318 510.218 C 310.697 483.752,357.666 397.732,357.583 257.000 C 357.491 100.635,304.424 30.448,191.400 37.200 M225.628 39.389 C 304.346 46.937,345.574 102.670,354.202 213.200 C 360.878 298.714,348.946 374.826,320.767 426.486 C 283.590 494.640,211.754 526.465,123.714 513.787 C 91.686 509.174,72.163 501.526,67.292 491.683 C 63.925 484.877,63.289 462.604,66.291 456.600 C 69.423 450.336,73.346 450.207,90.400 455.805 C 127.376 467.943,161.159 471.165,190.823 465.381 C 249.662 453.908,287.157 402.262,294.626 322.400 C 296.433 303.078,294.857 301.817,278.312 309.333 C 248.469 322.891,224.689 328.443,193.800 329.064 C 136.227 330.221,96.644 314.183,73.244 280.216 C 46.746 241.751,43.310 168.364,65.678 118.600 C 90.963 62.346,151.644 32.295,225.628 39.389 M188.600 87.416 C 141.643 92.999,113.639 129.488,112.909 186.040 C 112.019 254.937,143.012 285.236,210.298 281.247 C 241.077 279.422,286.203 262.878,292.483 251.117 C 294.123 248.045,293.957 222.561,292.195 207.000 C 291.896 204.360,291.533 200.670,291.388 198.800 C 288.834 165.855,277.750 132.468,263.336 114.304 C 247.048 93.777,219.240 83.773,188.600 87.416 ']
-            , [[1, 1], 1, '#000000',
-               'M179.013 38.964 C 84.950 52.246,32.118 135.528,54.082 235.897 C 73.335 323.879,177.753 357.692,280.644 309.265 C 296.252 301.919,295.071 300.563,293.135 323.607 C 283.387 439.610,205.580 491.767,94.972 456.443 C 65.974 447.183,63.644 448.477,63.648 473.846 C 63.652 497.400,73.474 505.219,112.841 513.009 C 268.130 543.738,362.358 438.409,356.158 241.026 C 351.446 91.015,291.846 23.031,179.013 38.964 M233.628 92.786 C 270.693 106.654,293.137 159.469,293.293 233.194 C 293.340 254.944,293.057 255.315,267.651 266.834 C 195.256 299.660,128.313 278.909,115.775 219.756 C 97.059 131.456,158.903 64.828,233.628 92.786']
-
-        ]
-    ]
-
-    for path in paths[i]:
-        offset = path[0]
-        path_scale = path[1]
-        color = path[2]
-        path = path[3]
-        polys = getPolygons(path, scale * path_scale, offsetX + offset[0] * scale, offsetY + offset[1] * scale)
-        for poly in polys:
-            canvas.create_polygon(poly, fill=color, tag='rr', smooth=True)

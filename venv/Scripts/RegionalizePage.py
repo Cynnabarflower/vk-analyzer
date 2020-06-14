@@ -28,7 +28,6 @@ class RegionalizePage(Page):
     regions = {}
     regions_lock = threading.Lock()
 
-
     color_gradient = []
 
     def __init__(self, parent, controller):
@@ -50,37 +49,53 @@ class RegionalizePage(Page):
                     point[0] = point[1]
                     point[1] = t
         self.scrollList.sort(reverse=False, key=lambda item: item.value)
-        self.ruMap = RuMap(self, self.regions_coordinates, hower_callback = self.map_hower, )
-        self.ruMap.grid(column=1, row=1, sticky = 's')
+        self.ruMap = RuMap(self, self.regions_coordinates, hower_callback=self.map_hower, )
+        self.ruMap.grid(column=1, row=1, sticky='s')
 
-        self.row = row =  Row(self)
-        row.grid(column = 1, row = 2, sticky='n')
+        self.row = row = Row(self)
+        row.grid(column=1, row=2, sticky='n')
         row.add(
-            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
-            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
-        SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h = 50, w = 90),
-        SimpleButton(parent=row, text='', h = 50, w = 90, icon=tk.PhotoImage(file=controller.config['paths']['search']), fillcolor = '', loadcolor = '', onclicked = lambda: self.open_new()))
+            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h=50,
+                         w=90),
+            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h=50,
+                         w=90),
+            SimpleButton(parent=row, fillcolor=Gui.background_color, loadcolor=Gui.background_color, text='', h=50,
+                         w=90),
+            SimpleButton(parent=row, text='', h=50, w=90, icon=tk.PhotoImage(file=controller.config['paths']['search']),
+                         fillcolor='', loadcolor='', onclicked=lambda: self.open_new()))
 
         self.button1 = ProgressButton(parent=self, text='Regionalize', onclicked=lambda: self.regionalize(), w=360,
-                                      h=105, backgroundcolor = Gui.background_color)
+                                      h=105, backgroundcolor=Gui.background_color)
         self.button1.grid(column=1, row=3)
 
-        # HorizontalScrollBar(self).grid(row = 0, column = 1)
-
-
     def open_new(self):
+        """
+        Opens another widow with current map
+        """
         app = tk.Tk()
         screen_width = math.floor(app.winfo_screenwidth() / 1.5)
         screen_height = math.floor(app.winfo_screenheight() / 1.5)
-        app.geometry(str(screen_width)+'x'+str(screen_height))
-        scaleX = screen_width/self.ruMap.width/1.1
-        scaleY = screen_height/self.ruMap.height/1.1
-        c = RuMap(app, coords=self.regions_coordinates, w = screen_width, h = screen_height, scaleX=min(scaleX, scaleY) * self.ruMap.scaleX)
+        app.geometry(str(screen_width) + 'x' + str(screen_height))
+        scaleX = screen_width / self.ruMap.width / 1.1
+        scaleY = screen_height / self.ruMap.height / 1.1
+        c = RuMap(app, coords=self.regions_coordinates, w=screen_width, h=screen_height,
+                  scaleX=min(scaleX, scaleY) * self.ruMap.scaleX)
         c.update_colors(self.regions, self.color_gradient)
         c.pack()
         app.mainloop()
 
     def resize(self, w, h, aw, ah):
+        """
+        Called whenever the window is resized
+        :param w:
+        :type w:
+        :param h:
+        :type h:
+        :param aw:
+        :type aw:
+        :param ah:
+        :type ah:
+        """
         print('Regionalyzer resized')
         self.scale = (aw, ah)
         if w < self.scrollList.w + self.ruMap.width * aw:
@@ -92,6 +107,11 @@ class RegionalizePage(Page):
         self.button1.resize(w, h, aw, ah)
 
     def map_hower(self, name):
+        """
+        Handles mouse hover, shows region under the mouse
+        :param name:
+        :type name:
+        """
         if name == '':
             self.scrollList.sort()
         else:
@@ -103,35 +123,59 @@ class RegionalizePage(Page):
         self.users = users
 
     def update_scrolllist(self, regions):
+        """
+        Updates progress on scrollbar with region names
+        :param regions:
+        :type regions:
+        """
         if regions.__len__() > 0:
             for reg in regions:
-                self.scrollList.setProgress(name=reg.replace('RU-', ''), progress=self.regions[reg] / self.ruMap.maxreg * 0.9,
+                self.scrollList.setProgress(name=reg.replace('RU-', ''),
+                                            progress=self.regions[reg] / self.ruMap.maxreg * 0.9,
                                             text=' ' + str(self.regions[reg]))
             self.scrollList.sort()
 
     def watch_progress(self):
+        """
+        Shows progress of regionalization
+        """
         progress = self.regionalizeProgress[0] / self.regionalizeProgress[1]
         self.button1.drawProgress(progress)
         self.ruMap.update_colors(self.regions, self.color_gradient)
         self.update_scrolllist(self.regions)
         if progress < 1:
-            self.after(500, self.watch_progress)
+            self.after(400, self.watch_progress)
         else:
             self.controller.update_users(self.users)
 
     def regionalize(self):
+        """
+        Initializes users distribution be regions
+        """
         self.regions = {}
         u_len = self.users.__len__()
         self.regionalizeProgress = [0, u_len]
         self.watch_progress()
         users_list = self.users
-        i = 0
         cities = json.load(open(self.controller.config['paths']['cities'], 'r'))
         cities['1'] = {'region': 'RU-MOS'}
         cities['2'] = {'region': 'RU-LEN'}
-        Thread(target=lambda: self._reg2(users_list, cities)).start()
+        Thread(target=lambda: self._reg(users_list, cities)).start()
 
     def detect_region(self, user, cities, regs, not_found):
+        """
+        Determines user's region
+        :param user:
+        :type user:
+        :param cities:
+        :type cities:
+        :param regs:
+        :type regs:
+        :param not_found:
+        :type not_found:
+        :return:
+        :rtype:
+        """
         if (not pd.isna(user['city'])):
             city_id = str((int)(user['city']))
             if city_id in cities:
@@ -146,11 +190,17 @@ class RegionalizePage(Page):
                 not_found[city_id] = ''
         return ''
 
-
-    def _reg2(self, users_df, cities):
+    def _reg(self, users_df, cities):
+        """
+        Sets users regions
+        :param users_df:
+        :type users_df:
+        :param cities:
+        :type cities:
+        """
         not_found = {}
         regs = {}
-        users_df['region'] = users_df.apply(lambda row: self.detect_region(row, cities, regs, not_found), axis = 1)
+        users_df['region'] = users_df.apply(lambda row: self.detect_region(row, cities, regs, not_found), axis=1)
         with self.regions_lock:
             for reg in regs:
                 if reg in self.regions:
@@ -159,28 +209,4 @@ class RegionalizePage(Page):
                     self.regions[reg] = regs[reg]
             self.regionalizeProgress[0] += users_df.__len__()
             print(self.regions.__len__(), ':  ', self.regions)
-            print('not found: ', not_found.__len__())
-
-    def __reg(self, users_list, cities, a, b, name, ):
-        not_found = {}
-        regs = {}
-        for i in range(a, b):
-            if ('city' in users_list[i]):
-                city_id = str(users_list[i]['city']['id'])
-                if city_id in cities:
-                    reg = cities[city_id]['region']
-                    if reg in regs:
-                        regs[reg] += 1
-                    else:
-                        regs[reg] = 1
-                else:
-                    not_found[city_id] = ''
-        with self.regions_lock:
-            for reg in regs:
-                if reg in self.regions:
-                    self.regions[reg] += regs[reg]
-                else:
-                    self.regions[reg] = regs[reg]
-            self.regionalizeProgress[0] += b - a
-            print(a, '-', b, ' ', self.regions.__len__(), ':  ', self.regions)
             print('not found: ', not_found.__len__())
