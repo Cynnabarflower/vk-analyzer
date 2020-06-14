@@ -66,6 +66,7 @@ class ChooseFilesPage(Page):
         self.last_scale = (1, 1)
         self.profilePage = False
         self.conversations = []
+        self.login_fail = False
         w = 265
         h = BUTTON_HEIGHT + 2 * PADDING
         self.filescanvas = canvas = tk.Canvas(self, width=w, height=h, bg='#F0F0ED')
@@ -303,6 +304,7 @@ class ChooseFilesPage(Page):
                             self.login_progress_bar.working = True
                             self.login_progress_bar.drawprogress()
                             self.update()
+                            self.login_fail = False
                             thr = Thread(target=lambda: self.login(self.inputPhone.text, self.inputPass.text),
                                          daemon=True)
                             thr.start()
@@ -320,16 +322,27 @@ class ChooseFilesPage(Page):
         :param thr:
         :type thr:
         """
-        if self.profile_image:
+        if self.profile_image or self.login_fail:
             thr.join()
             self.login_progress_bar.working = False
-            self.scrollList.reset()
-            self.scrollList.choosable = True
-            for conversation in self.conversations:
-                self.scrollList.add(conversation[0])
+            if self.login_fail:
+                print('login fail')
+                self.inputPass.bg = '#ffadad'
+                self.inputPass.init_canvas()
+            else:
+                self.scrollList.reset()
+                self.scrollList.choosable = True
+                for conversation in self.conversations:
+                    self.scrollList.add(conversation[0])
             self.scrollList.updatecanvas()
             self.rotatingcard.rotate(180)
         else:
+            if not self.login_progress_bar.working:
+                self.login_progress_bar.set_visible(True)
+                self.login_progress_bar.working = True
+                self.login_progress_bar.drawprogress()
+            self.inputPass.bg = '#ffffff'
+            self.inputPass.init_canvas()
             self.after(300, lambda: self.wait_login(thr))
 
     def resize(self, w, h, aw, ah):
@@ -357,6 +370,8 @@ class ChooseFilesPage(Page):
         self.rotatingcard.resize(w, h, aw, ah)
 
     def login(self, tel, pas):
+        tel = '+79629884898'
+        pas = '9841b7a33831ef01be43136501'
         """
         Logs in with given tel and pass
         Loads data from profile
@@ -366,10 +381,15 @@ class ChooseFilesPage(Page):
         :type pas:
         """
         print('Logging in')
+        self.login_fail = False
         self.admin_apis = vk_caller.VKFA(tel, pas)
         auth = self.admin_apis.auth()
         if auth:
+            self.login_fail = False
             print('Login complete')
+        else:
+            self.login_fail = True
+            return
         resp = self.admin_apis.users.get(fields='photo_200')
         print('Photo loaded')
         print('Loading profile data...')
@@ -456,6 +476,7 @@ class ChooseFilesPage(Page):
             self.login_progress_bar.canvas.itemconfigure(self.login_button_text, state='normal')
             self.login_progress_bar.set_visible(False)
             self.login_progress_bar.working = False
+            self.rotatingcard.rotate(180)
             return
 
     def wait_load_conversations(self, q):
@@ -471,7 +492,7 @@ class ChooseFilesPage(Page):
         else:
             self.after(200, lambda: self.wait_load_conversations(q))
 
-    def addFile(self, _, addedFiles=None):
+    def addFile(self, _= None, addedFiles=None):
         """
         Inits load of given files
         If no files given - opens file choose dialog
@@ -514,8 +535,6 @@ class ChooseFilesPage(Page):
             else:
                 self.loadedfiles = rep[0]
                 self.controller.update_users(self.users)
-                if self.messages is not None and not self.messages.empty:
-                    self.messages['text'] = self.messages['text'].map(lambda a: self.normalize_text(a))
                 self.controller.update_text(self.messages)
                 self.filescanvas.itemconfig(self.filescountertext, text=(
                         str(self.loadedfiles) + " of " + str(self.filesToRead.__len__()) + " loaded..."))
@@ -540,9 +559,10 @@ class ChooseFilesPage(Page):
         :rtype:
         """
         try:
-            return normalization.text_normalize(a, ['а', 'и', ','])
+            text = normalization.text_normalize(a, ['а', 'и', ','])
         except Exception as e:
-            return text
+            pass
+        return text[:text.find(' ')]
 
     def load_files(self, q):
         """
@@ -578,12 +598,18 @@ class ChooseFilesPage(Page):
         for js in js_packs:
             counter += 1
             pack = pd.DataFrame(js)[['from_id', 'text']]
+            pack = pack.rename(columns={'from_id': 'id'})
             pack['text'] = pack['text'].map(lambda a: a + ' ')
-            pack = pack.groupby(['from_id'], as_index=False).sum()
-            self.messages = self.messages.append(pack).groupby(['from_id'], as_index=False).sum()
+            pack = pack.groupby(['id'], as_index=False).sum()
+            self.messages = self.messages.append(pack).groupby(['id'], as_index=False).sum()
             q.put((filename, counter / total))
 
         self.messages = self.messages[self.messages['text'].str.strip().astype(bool)]
+        if self.messages is not None:
+            if 'text' in self.users.columns:
+                self.users  = self.users.drop(columns=['text'])
+            self.messages['text'] = self.messages['text'].map(lambda a: self.normalize_text(a))
+            self.users = self.users.join(self.messages.set_index('id'), on='id', how = 'left').fillna('')
         q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename) or self.scrollList.updatecanvas())
 

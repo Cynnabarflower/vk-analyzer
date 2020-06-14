@@ -4,7 +4,7 @@ from tkinter import ttk
 import Gui as Gui
 from Widgets import *
 
-fields = ['id', 'first_name', 'last_name', 'sex', 'followers_count', 'bdate', 'city', 'occupation', 'university_name', 'graduation', 'education_status', 'region']
+fields = ['id', 'first_name', 'last_name', 'sex', 'followers_count', 'bdate', 'city', 'occupation', 'university_name', 'graduation', 'education_status', 'region', 'text']
 
 class TablePage(Page):
     def __init__(self, parent, controller):

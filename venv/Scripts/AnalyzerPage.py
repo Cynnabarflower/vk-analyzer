@@ -55,6 +55,8 @@ class AnalyzerPage(Page):
             data['age'] = data['bdate'].map(lambda a: self.calc_age(a))
         if 'sex' in data:
             items['sex'] = ['sex']
+        if 'text' in data:
+            items['text'] = ['text']
         if 'education_status' in data:
             items['education'] = ['education']
         if "university" in data:
@@ -189,6 +191,8 @@ class AnalyzerPage(Page):
         b.add_value('education_status')
         if 'region' in self.items:
             b.add_value('region')
+        if 'text' in self.items:
+            b.add_value('text')
         b.grid(row=3, column=0, columnspan=5)
         self.textCanvas = tk.Canvas(frame, width=550, height=37, bg=Gui.background_color, bd=-2)
         self.textCanvas.create_text(275, 4, text='Quantitive', font=("Colibri", 20), fill='#4978a6',
