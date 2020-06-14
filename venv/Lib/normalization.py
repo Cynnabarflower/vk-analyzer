@@ -71,8 +71,9 @@ def text_normalize(text, stop_words):
     #Delete words that do not contain vowels or consonants
     i=0
     while i in range(len(text)):
-        if (text[i][0] in 'abcdefghijklmnopqrstuvwxyz' and count_gl_en(text[i])==0) or count_gl_en(text[i])==len(text[i])\
-                or (text[i][0] in 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя' and count_glas(text[i])==0)\
+
+        if (text[i] and text[i][0] in 'abcdefghijklmnopqrstuvwxyz' and count_gl_en(text[i])==0) or count_gl_en(text[i])==len(text[i])\
+                or (text[i] and text[i][0] in 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя' and count_glas(text[i])==0)\
                 or count_glas(text[i])==len(text[i]):
             del text[i]
         else:
@@ -182,3 +183,25 @@ def text_normalize(text, stop_words):
             if f != -1:
                 text[N] = word
     return text
+
+
+def popular_word(text):
+    """
+    Mosolov Alexander.
+    Most frequent word in the text
+    :param text:
+    :type text:
+    :return:
+    :rtype:
+    """
+    max = 0
+    pop_word = ''
+    for i in range(len(text)):
+        k = 1
+        for j in range(i + 1, len(text)):
+            if (text[i] == text[j]):
+                k += 1
+        if k > max:
+            max = k
+            pop_word = text[i]
+    return pop_word

@@ -42,6 +42,7 @@ class ChooseFilesPage(Page):
         """
         super().__init__(parent, controller)
         self.filesToRead = []
+        self.controller = controller
         dtypes = np.dtype([
             ('id', int), ('first_name', str), ('last_name', str), ('sex', str), ('followers_count', int),
             ('bdate', str), ('city', int), ('occupation', str), ('university_name', str), ('graduation', int),
@@ -558,11 +559,12 @@ class ChooseFilesPage(Page):
         :return:
         :rtype:
         """
-        try:
-            text = normalization.text_normalize(a, ['а', 'и', ','])
-        except Exception as e:
-            pass
-        return text[:text.find(' ')]
+        # try:
+        text = normalization.text_normalize(text, self.controller.config['normalization']['exclude'].split(','))
+        return normalization.popular_word(text)
+        # except Exception as e:
+        #     print(e)
+        #     return ''
 
     def load_files(self, q):
         """
@@ -647,6 +649,7 @@ class ChooseFilesPage(Page):
 
                 users['city'] = users['city'].map(lambda a: 0 if pd.isna(a) or not isinstance(a, dict) else a['id'])
                 users['city'] = users['city'].astype('int32')
+
                 users['occupation'] = users['occupation'].map(
                     lambda a: "" if pd.isna(a) or not isinstance(a, dict) or a['type'] != 'work' else a['name'])
                 users['university_name'].fillna('', inplace=True)
@@ -658,6 +661,7 @@ class ChooseFilesPage(Page):
                 users['followers_count'].fillna(-1, inplace=True)
                 users['followers_count'] = users['followers_count'].astype(int)
                 users['education_status'].fillna('', inplace=True)
+                users['education_status'] = users['education_status'].apply(self.reset_femenitives)
                 users['education_status'] = users['education_status'].astype(str)
                 users['id'] = users['id'].astype(int)
                 users['sex'] = users['sex'].map(
@@ -670,6 +674,25 @@ class ChooseFilesPage(Page):
 
         q.put((filename, 1))
         self.after(100, lambda: self.scrollList.remove(name=filename))
+
+
+    def reset_femenitives(self, a):
+        a = a.lower()
+        if 'абитури' in a:
+            return 'Абитуриент'
+        if 'аспира' in a:
+            return 'Аспирант'
+        if 'выпус' in a:
+            if 'бака' in a:
+                return 'Бакалавр'
+            if 'спец' in a:
+                return 'Специалист'
+            return 'Выпускник'
+        if 'студ' in a:
+            return 'Студент'
+        if 'маг' in a:
+            return 'Магистр'
+        return a
 
     def update_users(self, users):
         """
@@ -776,7 +799,7 @@ class ChooseFilesPage(Page):
         for conversation in conversations:
             try:
                 print('conversation: ' + str(i) + '/' + str(conversations_count))
-                filenames.append(self.getMessages(conversationsDir, conversation, 500))
+                filenames.append(self.getMessages(conversationsDir, conversation, int(self.controller.config['messages']['quan'])))
                 i = i + 1
             except Exception as e:
                 print('Got exception:')

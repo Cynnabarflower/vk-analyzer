@@ -191,6 +191,15 @@ def barh(dframe, qual1, qual2, lat=12, long=7, show_axes=True):
         s = dframe.groupby(qual2).rainbow.value_counts().tolist()
         fr = np.array(np.array_split(s, len(b)))
         # finding the cumulative sum aover columns for each row
+        max = -1
+        for arr in fr:
+            if arr.__len__() > max:
+                max = arr.__len__()
+        for i in range(fr.__len__()):
+            np.pad(fr[i], (0, max - arr.__len__()), 'constant')
+
+
+
         all_fr = fr.cumsum(axis=1)
 
         # creating the figure instance
@@ -198,6 +207,7 @@ def barh(dframe, qual1, qual2, lat=12, long=7, show_axes=True):
         ax.invert_yaxis()
         ax.xaxis.set_visible(False)
         ax.set_xlim(0, np.sum(fr, axis=1).max())
+
 
         # the desinging part
         category_colors = plt.get_cmap('RdYlGn')(np.linspace(0.15, 0.85, fr.shape[1]))

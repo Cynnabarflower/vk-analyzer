@@ -92,8 +92,10 @@ class AnalyzerPage(Page):
     def display_graphs(self):
         """
         Show available graphs
-        Podbolotov Dmitry
+        Maidzhe Alexandra
         """
+
+    def display_graphs(self):
         for win in self.top_canvas_windows:
             self.top_canvas.delete(win[0])
 
@@ -118,7 +120,8 @@ class AnalyzerPage(Page):
             graphs.append('Summary')
         if self.qualitative_radio.get_selected().__len__() == 1:
             graphs.append('Quality')
-        if self.qualitative_radio.get_selected().__len__() == 2 and self.quantitative_radio.get_selected().__len__() == 0:
+        if self.qualitative_radio.get_selected().__len__() == 2 and self.quantitative_radio.get_selected().__len__() == 0 \
+                and self.qualitative_radio.get_selected()[0] == 'education_status':
             graphs.append('Colourful_caterpillar')
         if self.qualitative_radio.get_selected().__len__() == 0 and self.quantitative_radio.get_selected().__len__() == 2:
             graphs.append('Line_graph')
@@ -137,7 +140,8 @@ class AnalyzerPage(Page):
             if graph in ['Summary', 'Quality', 'Quantity']:
                 c = SimpleButton(self, onclicked=lambda b: self.show_report(b.text), w=550 / 5, h=550 / 5,
                                  text=str(graph),
-                                 icon=tk.PhotoImage(file=self.controller.config['paths']['report']), fillcolor='#91b0cf', padding=5)
+                                 icon=tk.PhotoImage(file=self.controller.config['paths']['report']),
+                                 fillcolor='#91b0cf', padding=5)
             else:
                 c = SimpleButton(self, onclicked=lambda b: self.init_show_graph(b.text, b), w=550 / 5, h=550 / 5,
                                  text=str(graph),
@@ -292,6 +296,7 @@ class AnalyzerPage(Page):
 
     def get_plot(self, data, graph_type, sf=[], lat=1, long=1, show_axes=False):
         """
+        Maidzhee Alexandra
         Get plot figure
         :param data:
         :type data:

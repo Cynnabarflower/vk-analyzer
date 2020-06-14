@@ -29,7 +29,7 @@ class Gui(tk.Tk):
         self.users = None
         self.users_text = None
         self.config = configparser.ConfigParser()
-        self.config.read("Data/settings.ini")
+        self.config.read("Data/settings.ini", encoding='utf-8')
         self.initUI()
 
     def initUI(self):
